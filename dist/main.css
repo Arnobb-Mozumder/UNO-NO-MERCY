@@ -664,6 +664,42 @@ input[type="text"]::placeholder { color: var(--text-dim); }
     #fullscreen-btn { display: flex !important; }
 }
 
+/* Portrait orientation optimization to prevent overlap */
+@media (orientation: portrait) {
+    .hud-right {
+        top: calc(10px + env(safe-area-inset-top));
+        right: calc(10px + env(safe-area-inset-right));
+        gap: 6px;
+    }
+    .icon-btn {
+        width: 36px;
+        height: 36px;
+        font-size: 0.9rem;
+    }
+    #game-hud {
+        top: calc(10px + env(safe-area-inset-top));
+        left: calc(10px + env(safe-area-inset-left));
+        max-width: 140px;
+        padding: 5px 10px;
+        gap: 6px;
+    }
+    .timer-box {
+        width: 34px;
+        height: 34px;
+        font-size: 0.9rem;
+    }
+    #action-controls, .action-controls-right {
+        bottom: calc(12px + env(safe-area-inset-bottom));
+    }
+    .action-pill {
+        min-width: 70px;
+        height: 40px;
+        font-size: 0.75rem;
+        padding: 0 10px;
+    }
+    .catch-pill { font-size: 0.65rem; line-height: 1.1; }
+}
+
 /* Landscape on small screens — critical layout fix */
 @media (orientation: landscape) and (max-height: 600px) {
     #game-hud {
