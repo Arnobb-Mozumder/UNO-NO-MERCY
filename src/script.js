@@ -244,6 +244,30 @@ function escapeHtml(text) {
     return div.innerHTML;
 }
 
+function cleanupMultiplayer() {
+    isMultiplayer = false;
+    isHost = false;
+    currentRoomCode = null;
+    
+    // Hide chat buttons
+    const chatTriggerBtn = document.getElementById('chat-trigger-btn');
+    const toggleChatBtn = document.getElementById('toggle-chat-btn');
+    const chatContainer = document.getElementById('chatbox-container');
+    
+    if (chatTriggerBtn) chatTriggerBtn.classList.add('hidden');
+    if (toggleChatBtn) toggleChatBtn.classList.add('hidden');
+    if (chatContainer) chatContainer.classList.add('hidden');
+    
+    // Unsubscribe from chat channel
+    if (chatChannel) {
+        chatChannel.unsubscribe();
+        chatChannel = null;
+    }
+    
+    // Stop heartbeat
+    stopHeartbeat();
+}
+
 function initializeChatSystem() {
     if (!isMultiplayer || !currentRoomCode) {
         console.log('Chat system: Not in multiplayer or no room code');
@@ -252,21 +276,59 @@ function initializeChatSystem() {
     
     console.log('Initializing chat system for room:', currentRoomCode);
     
-    // Remove any previous listeners to prevent duplicates
+    // Setup chat trigger buttons visibility
     const chatTriggerBtn = document.getElementById('chat-trigger-btn');
+    const toggleChatBtn = document.getElementById('toggle-chat-btn');
+    
+    if (chatTriggerBtn) {
+        chatTriggerBtn.classList.remove('hidden');
+    }
+    if (toggleChatBtn) {
+        toggleChatBtn.classList.remove('hidden');
+    }
+
+    // Cleanup previous channel if exists
+    if (chatChannel) {
+        chatChannel.unsubscribe();
+    }
+    
+    // Subscribe to chat channel
+    chatChannel = supabase.channel(`chat:${currentRoomCode}`);
+    
+    chatChannel
+        .on('broadcast', { event: 'message' }, (payload) => {
+            console.log('Chat message received:', payload);
+            if (payload.payload && payload.payload.player && payload.payload.text) {
+                addChatMessage(payload.payload.player, payload.payload.text);
+            }
+        })
+        .subscribe((status) => {
+            console.log('Chat channel status:', status);
+        });
+    
+    // Remove any previous listeners to prevent duplicates
     const closeBtn = document.getElementById('close-chat-btn');
     const sendBtn = document.getElementById('send-chat-btn');
     const chatInput = document.getElementById('chat-input');
     
-    // Create fresh button element to remove old listeners
+    // Setup chat trigger button
     if (chatTriggerBtn) {
         const newBtn = chatTriggerBtn.cloneNode(true);
         chatTriggerBtn.parentNode.replaceChild(newBtn, chatTriggerBtn);
         newBtn.addEventListener('click', () => {
             showChatBox();
-            console.log('Chat box opened');
+            console.log('Chat box opened via HUD');
         });
-        console.log('Chat trigger button ready');
+    }
+
+    // Setup toggle chat button (lobby/fixed)
+    if (toggleChatBtn) {
+        const newToggleBtn = toggleChatBtn.cloneNode(true);
+        toggleChatBtn.parentNode.replaceChild(newToggleBtn, toggleChatBtn);
+        newToggleBtn.addEventListener('click', () => {
+            showChatBox();
+            console.log('Chat box opened via Toggle');
+        });
     }
     
     if (closeBtn) {
@@ -278,15 +340,25 @@ function initializeChatSystem() {
     if (sendBtn) {
         const newSendBtn = sendBtn.cloneNode(true);
         sendBtn.parentNode.replaceChild(newSendBtn, sendBtn);
-        newSendBtn.addEventListener('click', () => {
+        newSendBtn.addEventListener('click', async () => {
             const message = chatInput.value.trim();
             if (message && game && game.players && myPlayerIndex >= 0 && myPlayerIndex < game.players.length) {
                 const playerName = game.players[myPlayerIndex]?.name || 'Unknown';
+                
+                // Broadcast to others
+                if (chatChannel) {
+                    await chatChannel.send({
+                        type: 'broadcast',
+                        event: 'message',
+                        payload: { player: playerName, text: message }
+                    });
+                }
+                
                 addChatMessage(playerName, message);
                 console.log('Message sent:', playerName, '-', message);
                 chatInput.value = '';
             } else {
-                console.log('Cannot send message - missing game data');
+                console.log('Cannot send message - missing game data or empty message');
             }
         });
     }
@@ -878,7 +950,9 @@ class UNOGame {
              players: this.players.map(p => ({
                 name: p.name, emoji: p.emoji, isBot: p.isBot,
                 hand: p.hand.map(c => ({ color: c.color, value: c.value, filename: c.filename })),
-                eliminated: p.eliminated, unoCalled: p.unoCalled, id: p.id, isHost: p.isHost || false
+                eliminated: p.eliminated, unoCalled: p.unoCalled, id: p.id, isHost: p.isHost || false,
+                authUID: p.authUID || null, deviceId: p.deviceId || null,
+                disconnected: p.disconnected || false
             })),
             deck: this.deck.map(c => ({ color: c.color, value: c.value, filename: c.filename })),
             discardPile: this.discardPile.map(c => ({ color: c.color, value: c.value, filename: c.filename })),
@@ -1228,6 +1302,7 @@ function drawOpponents(others, tableTop, tableBot, deckMidY, cx) {
 
     const drawOpponent = (p, centerX, centerY, cardW, cardH) => {
         const isCurrentTurn = game.currentPlayerIndex === game.players.indexOf(p);
+        const isDisconnected = !!p.disconnected;
         const cardCount = p.hand.length;
         const maxCards = Math.min(cardCount, 8);
         const cardSpacing = Math.min(cardW * 0.45, (cardW * 3) / Math.max(maxCards, 1));
@@ -1239,7 +1314,7 @@ function drawOpponents(others, tableTop, tableBot, deckMidY, cx) {
             ctx.save();
             ctx.beginPath();
             ctx.arc(centerX, centerY + cardH / 2, Math.max(totalW / 2, cardH / 2) + 12 * SCALE, 0, Math.PI * 2);
-            ctx.strokeStyle = 'rgba(59,130,246,0.6)';
+            ctx.strokeStyle = isDisconnected ? 'rgba(255,100,100,0.5)' : 'rgba(59,130,246,0.6)';
             ctx.lineWidth = 3 * SCALE;
             ctx.setLineDash([6 * SCALE, 4 * SCALE]);
             ctx.stroke();
@@ -1247,9 +1322,15 @@ function drawOpponents(others, tableTop, tableBot, deckMidY, cx) {
             ctx.restore();
         }
 
+        // Draw cards (dimmed if disconnected)
+        ctx.save();
+        ctx.globalAlpha = isDisconnected ? 0.35 : 1.0;
         for (let i = 0; i < maxCards; i++) {
             renderCard(startX + i * cardSpacing, centerY, cardW, cardH, null, false);
         }
+        ctx.globalAlpha = 1.0;
+        ctx.restore();
+
         if (cardCount > 8) {
             ctx.save();
             ctx.fillStyle = 'rgba(255,255,255,0.85)';
@@ -1259,17 +1340,41 @@ function drawOpponents(others, tableTop, tableBot, deckMidY, cx) {
             ctx.restore();
         }
 
+        // Disconnected overlay badge
+        if (isDisconnected) {
+            ctx.save();
+            const badgeW = Math.max(80 * SCALE, totalW * 0.8);
+            const badgeH = cardH * 0.38;
+            const badgeX = centerX - badgeW / 2;
+            const badgeY = centerY + cardH / 2 - badgeH / 2;
+            ctx.fillStyle = 'rgba(20,20,30,0.82)';
+            ctx.beginPath();
+            ctx.roundRect(badgeX, badgeY, badgeW, badgeH, 6 * SCALE);
+            ctx.fill();
+            ctx.fillStyle = '#f87171';
+            ctx.font = `bold ${Math.max(9, cardH * 0.13)}px Outfit`;
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.fillText('📡 RECONNECTING...', centerX, badgeY + badgeH / 2);
+            ctx.textBaseline = 'alphabetic';
+            ctx.restore();
+        }
+
         // Name label
         const labelY = centerY + cardH + 18 * SCALE;
         ctx.save();
         ctx.shadowColor = 'rgba(0,0,0,0.9)';
         ctx.shadowBlur = 10;
-        ctx.fillStyle = isCurrentTurn ? '#60a5fa' : 'rgba(255,255,255,0.9)';
+        ctx.fillStyle = isDisconnected ? '#f87171' : (isCurrentTurn ? '#60a5fa' : 'rgba(255,255,255,0.9)');
         const fontSize = Math.max(11, (mobile ? 13 : 15) * SCALE);
         ctx.font = `bold ${fontSize}px Outfit`;
         ctx.textAlign = 'center';
         ctx.fillText(`${p.emoji} ${p.name} (${cardCount})`, centerX, labelY);
-        if (isCurrentTurn) {
+        if (isDisconnected) {
+            ctx.fillStyle = '#f87171';
+            ctx.font = `bold ${Math.max(9, fontSize * 0.75)}px Outfit`;
+            ctx.fillText('DISCONNECTED', centerX, labelY + fontSize + 3 * SCALE);
+        } else if (isCurrentTurn) {
             ctx.fillStyle = '#60a5fa';
             ctx.font = `bold ${Math.max(9, fontSize * 0.75)}px Outfit`;
             ctx.fillText('▶ PLAYING', centerX, labelY + fontSize + 3 * SCALE);
@@ -1491,9 +1596,14 @@ function gameLoop() {
         // FIX: Only call autoPlay once per turn, not repeatedly each frame
         if (game.turnTimer <= 0 && !game.waitingForColor && !game.waitingForSwap) {
             const isMyTurnLocal = game.currentPlayerIndex === myPlayerIndex;
+            const currentP = game.getCurrentPlayer();
             const currentTime = Date.now();
-            // Only trigger autoPlay if enough time has passed since last turn change
-            if ((!isMultiplayer || isMyTurnLocal) && currentTime - lastAutoPlayTime > 500) {
+            // Auto-play disconnected players' turns (host acts as proxy bot for them)
+            const isDisconnectedTurn = isMultiplayer && isHost && currentP && currentP.disconnected && !currentP.isBot;
+            if (isDisconnectedTurn && currentTime - lastAutoPlayTime > 500) {
+                lastAutoPlayTime = currentTime;
+                game.autoPlay();
+            } else if ((!isMultiplayer || isMyTurnLocal) && currentTime - lastAutoPlayTime > 500) {
                 lastAutoPlayTime = currentTime;
                 game.autoPlay();
             }
@@ -1502,6 +1612,14 @@ function gameLoop() {
             const currentP = game.getCurrentPlayer();
             const turnElapsed = Date.now() - game.turnStartTime;
             if (currentP && currentP.isBot && !game.waitingForColor && turnElapsed > BOT_PLAY_DELAY + 200) {
+                executeBotTurn();
+            }
+        }
+        // Multiplayer: also execute bot turns on host side
+        if (isMultiplayer && isHost) {
+            const currentP = game.getCurrentPlayer();
+            const turnElapsed = Date.now() - game.turnStartTime;
+            if (currentP && currentP.isBot && !game.waitingForColor && !game.waitingForSwap && turnElapsed > BOT_PLAY_DELAY + 200) {
                 executeBotTurn();
             }
         }
@@ -1542,6 +1660,9 @@ function applyRemoteState(newState) {
             player.emoji = p.emoji;
             player.isBot = p.isBot;
             player.isHost = p.isHost || false;
+            player.authUID = p.authUID || player.authUID || null;
+            player.deviceId = p.deviceId || player.deviceId || null;
+            player.disconnected = p.disconnected || false;
             player.hand = p.hand.map(makeCard).filter(Boolean);
             player.unoCalled = p.unoCalled;
             player.eliminated = p.eliminated;
@@ -1552,6 +1673,7 @@ function applyRemoteState(newState) {
             newPlayer.hand = p.hand.map(makeCard).filter(Boolean);
             newPlayer.unoCalled = p.unoCalled;
             newPlayer.eliminated = p.eliminated;
+            newPlayer.disconnected = p.disconnected || false;
             return newPlayer;
         }
     });
@@ -1819,43 +1941,76 @@ function initGameUI() {
         console.log('====================');
         
         if (existingPlayer && gameInProgress) {
-            // RECONNECT: Same authenticated user returning during game
+            // ===== REJOIN: Authenticated user returning to their existing slot =====
             myPlayerId = existingPlayer.id;
-            
+            const existingPlayers = room.state.players || [];
+            myPlayerIndex = existingPlayers.findIndex(p => p.id === myPlayerId);
+
+            // Mark this player as reconnected (no longer disconnected)
+            const makeCardR = (c) => c ? new Card(c.color, c.value, c.filename) : null;
+            const updatedPlayers = existingPlayers.map(p => {
+                if (p.id === myPlayerId) {
+                    return { ...p, disconnected: false, isBot: false };
+                }
+                return p;
+            });
+
+            // Fully reconstruct game from DB state
+            const rs = room.state;
+            game = Object.create(UNOGame.prototype);
+            // Assign all primitive/object fields manually
+            game.deck           = (rs.deck || []).map(makeCardR).filter(Boolean);
+            game.discardPile    = (rs.discardPile || []).map(makeCardR).filter(Boolean);
+            game.currentPlayerIndex = rs.currentPlayerIndex || 0;
+            game.gameDirection  = rs.gameDirection || 1;
+            game.gameOver       = rs.gameOver || false;
+            game.chosenColor    = rs.chosenColor || 'none';
+            game.waitingForColor= rs.waitingForColor || false;
+            game.waitingForSwap = rs.waitingForSwap || false;
+            game.stackPenalty   = rs.stackPenalty || 0;
+            game.scores         = rs.scores || {};
+            game.lastAlert      = rs.lastAlert || null;
+            game.lastAlertTime  = rs.lastAlertTime || 0;
+            game.hasDrawnThisTurn = rs.hasDrawnThisTurn || false;
+            game.drawnCardIndexThisTurn = rs.drawnCardIndexThisTurn !== undefined ? rs.drawnCardIndexThisTurn : -1;
+            game.nextRoundReadySet = rs.nextRoundReadySet || {};
+            game.turnStartTime  = Date.now();
+            game.turnTimer      = 20;
+            game.lastPlayedPlayerIndex = rs.lastPlayedPlayerIndex || null;
+            game.gameStarted    = true;
+
+            game.players = updatedPlayers.map(p => {
+                const pl = new Player(p.name, p.emoji, p.isBot || false, p.id, p.isHost || false, p.deviceId || null, p.authUID || null);
+                pl.hand = (p.hand || []).map(makeCardR).filter(Boolean);
+                pl.eliminated = p.eliminated || false;
+                pl.unoCalled  = p.unoCalled  || false;
+                pl.disconnected = (p.id === myPlayerId) ? false : (p.disconnected || false);
+                return pl;
+            });
+
+            // Push updated (reconnected) state back to DB so host sees reconnection
+            await updateRoomState(currentRoomCode, { ...rs, players: updatedPlayers });
+
+            loadCardImages();
             joinRoomPanel.classList.add('hidden');
             gameContainer.classList.remove('hidden');
             if (menuBackground) menuBackground.hide();
             if (isMobile()) fullscreenBtn.classList.remove('hidden');
-            
-            // Use existing players without adding duplicate
-            const existingPlayers = room.state.players || [];
-            myPlayerIndex = existingPlayers.findIndex(p => p.id === myPlayerId);
-            
-            // Reconstruct game state from room state
-            game = Object.create(UNOGame.prototype);
-            Object.assign(game, room.state);
-            game.players = existingPlayers.map(p => {
-                const newPlayer = new Player(p.name, p.emoji, p.isBot, p.id, false, p.deviceId, p.authUID);
-                if (p.hand && Array.isArray(p.hand)) {
-                    newPlayer.hand = p.hand.map(c => ({
-                        color: c.color,
-                        value: c.value,
-                        filename: c.filename
-                    }));
-                }
-                newPlayer.eliminated = p.eliminated || false;
-                newPlayer.unoCalled = p.unoCalled || false;
-                return newPlayer;
-            });
-            game.gameStarted = true;
+
+            lastSyncedState = null; // Allow next state update to apply fully
+            lastAutoPlayTime = 0;
             gameRunning = true;
-            
+            gameLoop();
+            startHeartbeat(); // Let host know we're back
             setupMultiplayerSubscription();
             initializeChatSystem();
+            updateColorGlow(game.chosenColor);
             showAlert(`✅ Welcome back, ${existingPlayer.name}! Your cards have been restored.`);
+
         } else if (gameInProgress) {
             // NEW JOIN MID-GAME: Different user or guest, add as new player
             myPlayerId = 'p_' + Math.random().toString(36).substr(2, 9);
+            const makeCardJ = (c) => c ? new Card(c.color, c.value, c.filename) : null;
             
             joinRoomPanel.classList.add('hidden');
             gameContainer.classList.remove('hidden');
@@ -1866,27 +2021,46 @@ function initGameUI() {
             const updatedPlayers = [...(room.state.players || []), { name, emoji, isBot: false, id: myPlayerId, ready: true, hand: [], deviceId, authUID: currentAuthUID || null }];
             myPlayerIndex = updatedPlayers.length - 1;
             
-            // Reconstruct game state from room state
+            const rs2 = room.state;
             game = Object.create(UNOGame.prototype);
-            Object.assign(game, room.state);
+            game.deck           = (rs2.deck || []).map(makeCardJ).filter(Boolean);
+            game.discardPile    = (rs2.discardPile || []).map(makeCardJ).filter(Boolean);
+            game.currentPlayerIndex = rs2.currentPlayerIndex || 0;
+            game.gameDirection  = rs2.gameDirection || 1;
+            game.gameOver       = rs2.gameOver || false;
+            game.chosenColor    = rs2.chosenColor || 'none';
+            game.waitingForColor= rs2.waitingForColor || false;
+            game.waitingForSwap = rs2.waitingForSwap || false;
+            game.stackPenalty   = rs2.stackPenalty || 0;
+            game.scores         = rs2.scores || {};
+            game.lastAlert      = rs2.lastAlert || null;
+            game.lastAlertTime  = rs2.lastAlertTime || 0;
+            game.hasDrawnThisTurn = rs2.hasDrawnThisTurn || false;
+            game.drawnCardIndexThisTurn = rs2.drawnCardIndexThisTurn !== undefined ? rs2.drawnCardIndexThisTurn : -1;
+            game.nextRoundReadySet = rs2.nextRoundReadySet || {};
+            game.turnStartTime  = Date.now();
+            game.turnTimer      = 20;
+            game.lastPlayedPlayerIndex = rs2.lastPlayedPlayerIndex || null;
+            game.gameStarted    = true;
+
             game.players = updatedPlayers.map(p => {
-                const newPlayer = new Player(p.name, p.emoji, p.isBot, p.id, false, p.deviceId, p.authUID);
-                const existing = room.state.players.find(ep => ep.id === p.id);
-                if (existing && existing.hand && Array.isArray(existing.hand)) {
-                    newPlayer.hand = existing.hand.map(c => ({
-                        color: c.color,
-                        value: c.value,
-                        filename: c.filename
-                    }));
-                }
-                return newPlayer;
+                const pl = new Player(p.name, p.emoji, p.isBot || false, p.id, p.isHost || false, p.deviceId || null, p.authUID || null);
+                pl.hand = (p.hand || []).map(makeCardJ).filter(Boolean);
+                pl.eliminated = p.eliminated || false;
+                pl.unoCalled  = p.unoCalled  || false;
+                return pl;
             });
-            game.gameStarted = true;
+
+            loadCardImages();
+            lastSyncedState = null;
+            lastAutoPlayTime = 0;
             gameRunning = true;
-            
-            await updateRoomState(currentRoomCode, { ...room.state, players: updatedPlayers });
+            gameLoop();
+            startHeartbeat(); // Ping host so disconnect timer doesn't fire
+            await updateRoomState(currentRoomCode, { ...rs2, players: updatedPlayers });
             setupMultiplayerSubscription();
             initializeChatSystem();
+            updateColorGlow(game.chosenColor);
             showAlert(`✅ ${name} joined the game!`);
         } else {
             // Normal waiting room flow
@@ -1903,6 +2077,8 @@ function initGameUI() {
 
             updateWaitingList(updatedPlayers);
             setupMultiplayerSubscription();
+            initializeChatSystem();
+            // Heartbeat will start once the game actually begins (detected via subscription)
         }
     });
 
@@ -1914,9 +2090,7 @@ function initGameUI() {
     document.getElementById('leave-room-btn').addEventListener('click', () => {
         waitingRoomMenu.classList.add('hidden');
         mainMenu.classList.remove('hidden');
-        isMultiplayer = false;
-        isHost = false;
-        currentRoomCode = null;
+        cleanupMultiplayer();
     });
 
     document.getElementById('start-multiplayer-btn').addEventListener('click', async () => {
@@ -1945,6 +2119,7 @@ function initGameUI() {
         if (isMobile()) fullscreenBtn.classList.remove('hidden');
         gameRunning = true;
         gameLoop();
+        setupHeartbeatListener(); // Host listens for player pings
         await updateRoomState(currentRoomCode, { ...game.serialize(), gameStarted: true });
     });
 
@@ -2015,6 +2190,7 @@ function initGameUI() {
                 document.getElementById('start-multiplayer-btn').classList.remove('hidden');
                 document.getElementById('waiting-msg').textContent = "Waiting for players to join...";
                 setupMultiplayerSubscription();
+                initializeChatSystem();
             }
         }
     });
@@ -2105,36 +2281,50 @@ function setupMultiplayerSubscription() {
         const now = Date.now();
         if (newState.players) {
             newState.players.forEach(p => {
-                lastPlayerUpdateTimes[p.id] = now;
-                
-                // Clear disconnect timer if player reconnected
-                if (playerDisconnectTimers[p.id] && !p.eliminated) {
+                // Detect reconnection: player was disconnected but now has disconnected:false
+                if (playerDisconnectTimers[p.id] && !p.disconnected && !p.eliminated) {
                     clearTimeout(playerDisconnectTimers[p.id].timeout);
                     delete playerDisconnectTimers[p.id];
-                    if (gameRunning) showAlert(`✅ ${p.name} reconnected!`);
+                    // Update local game player to no longer be disconnected
+                    if (game && game.players) {
+                        const localP = game.players.find(lp => lp.id === p.id);
+                        if (localP) { localP.disconnected = false; localP.isBot = false; }
+                    }
+                    if (gameRunning) showAlert(`✅ ${p.name} reconnected! Their hand is restored.`);
+                } else if (!p.disconnected) {
+                    lastPlayerUpdateTimes[p.id] = now;
                 }
             });
         }
 
-        // Check for disconnected players during active game (host only)
+        // Host: detect newly-disconnected players, mark them in game state
         if (isHost && gameRunning && game && newState.gameStarted) {
+            let stateChanged = false;
             newState.players.forEach(p => {
-                if (p.eliminated || p.isBot) return; // Skip eliminated or bot players
+                if (p.eliminated || p.isBot || p.disconnected) return; // Skip already-handled
+                // We rely on Supabase presence / heartbeat absence — use lastPlayerUpdateTimes
+                // Host itself always updates; skip self
+                if (p.id === hostPlayerId) { lastPlayerUpdateTimes[p.id] = now; return; }
                 
-                const lastUpdate = lastPlayerUpdateTimes[p.id] || now;
-                const timeSinceUpdate = now - lastUpdate;
+                const lastSeen = lastPlayerUpdateTimes[p.id] || now;
+                const timeSinceUpdate = now - lastSeen;
                 
-                // Start disconnect tracking if haven't heard from player
-                if (timeSinceUpdate > 5000 && !playerDisconnectTimers[p.id]) {
-                    playerDisconnectTimers[p.id] = { 
+                // After 8 seconds without a state update from this player, mark disconnected
+                if (timeSinceUpdate > 8000 && !playerDisconnectTimers[p.id]) {
+                    playerDisconnectTimers[p.id] = {
                         startTime: now,
                         lastNotified: now,
-                        timeout: null 
+                        timeout: null
                     };
-                    showAlert(`⚠️ ${p.name} disconnected. Reconnect within 1.5 minutes...`);
+                    // Mark player as disconnected in local game state
+                    if (game.players) {
+                        const localP = game.players.find(lp => lp.id === p.id);
+                        if (localP) { localP.disconnected = true; }
+                    }
+                    stateChanged = true;
+                    showAlert(`⚠️ ${p.name} disconnected. Playing their turns automatically. They have 90s to rejoin.`);
                 }
                 
-                // Update player on reconnection progress
                 if (playerDisconnectTimers[p.id]) {
                     const disconnectTime = now - playerDisconnectTimers[p.id].startTime;
                     const timeRemaining = Math.max(0, RECONNECT_TIMEOUT_MS - disconnectTime);
@@ -2145,12 +2335,15 @@ function setupMultiplayerSubscription() {
                         playerDisconnectTimers[p.id].lastNotified = now;
                     }
                     
-                    // Remove player if timeout exceeded
+                    // Eliminate player if timeout exceeded
                     if (disconnectTime > RECONNECT_TIMEOUT_MS) {
                         removeDisconnectedPlayer(p.id);
+                        stateChanged = false; // removeDisconnectedPlayer calls syncState
                     }
                 }
             });
+            // Push disconnected flag changes to all clients
+            if (stateChanged && game) game.syncState();
         }
 
         // Update waiting room UI
@@ -2251,6 +2444,8 @@ function setupMultiplayerSubscription() {
                 if (!gameRunning) {
                     gameRunning = true;
                     gameLoop();
+                    // Non-host: start heartbeat so host knows we're alive
+                    if (!isHost) startHeartbeat();
                 }
             }
         }
@@ -2258,7 +2453,6 @@ function setupMultiplayerSubscription() {
         // Live game state sync
         if (gameRunning && newState.gameStarted && game) {
             applyRemoteState(newState);
-            
         }
     });
 }
@@ -2454,4 +2648,56 @@ document.addEventListener('DOMContentLoaded', () => {
     loadCardImages();
     initGameUI();
     menuBackground = new MenuBackground();
+});
+
+// ===== PLAYER HEARTBEAT (non-host only) =====
+// Sends a lightweight presence ping every 5 seconds so the host
+// knows this player is still connected. Uses a dedicated Supabase
+// channel broadcast to avoid mutating room state needlessly.
+let heartbeatInterval = null;
+
+function startHeartbeat() {
+    stopHeartbeat();
+    if (!isMultiplayer || isHost || !currentRoomCode || !myPlayerId || !supabase) return;
+    heartbeatInterval = setInterval(async () => {
+        if (!gameRunning || !currentRoomCode || !myPlayerId) { stopHeartbeat(); return; }
+        try {
+            // Broadcast a tiny ping on a presence channel
+            await supabase
+                .channel(`heartbeat:${currentRoomCode}`)
+                .send({ type: 'broadcast', event: 'ping', payload: { playerId: myPlayerId, ts: Date.now() } });
+        } catch (_) { /* ignore send errors */ }
+    }, 4000);
+}
+
+function stopHeartbeat() {
+    if (heartbeatInterval) { clearInterval(heartbeatInterval); heartbeatInterval = null; }
+}
+
+// Host listens to heartbeat pings and updates lastPlayerUpdateTimes
+function setupHeartbeatListener() {
+    if (!isHost || !currentRoomCode || !supabase) return;
+    supabase
+        .channel(`heartbeat:${currentRoomCode}`)
+        .on('broadcast', { event: 'ping' }, ({ payload }) => {
+            if (payload && payload.playerId) {
+                lastPlayerUpdateTimes[payload.playerId] = Date.now();
+                // If this player was marked disconnected, clear that flag
+                if (playerDisconnectTimers[payload.playerId] && game && game.players) {
+                    const localP = game.players.find(p => p.id === payload.playerId);
+                    if (localP && localP.disconnected) {
+                        localP.disconnected = false;
+                        clearTimeout(playerDisconnectTimers[payload.playerId].timeout);
+                        delete playerDisconnectTimers[payload.playerId];
+                        game.syncState();
+                    }
+                }
+            }
+        })
+        .subscribe();
+}
+
+// ===== CLEANUP ON PAGE LEAVE =====
+window.addEventListener('beforeunload', () => {
+    stopHeartbeat();
 });
