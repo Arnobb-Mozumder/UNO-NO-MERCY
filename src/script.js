@@ -24,7 +24,11 @@ function initializeAuth() {
                 currentAuthUser = user;
                 currentAuthUID = user.id; // Supabase uses 'id' instead of 'uid'
                 isGuestMode = false;
-                console.log('✅ USER SIGNED IN - UID:', currentAuthUID, 'Email/Phone:', user.email || user.phone);
+                
+                // Pre-fill myPlayerName from Google profile or metadata
+                myPlayerName = user.user_metadata?.full_name || user.email?.split('@')[0] || user.phone || 'Player';
+                
+                console.log('✅ USER SIGNED IN - UID:', currentAuthUID, 'Name:', myPlayerName);
                 closeAuthModal();
             } else {
                 currentAuthUser = null;
@@ -117,6 +121,7 @@ let lastAutoPlayTime = 0; // FIX: Prevent multiple autoPlay calls in same turn
 let deviceId = null; // Unique device identifier for player recognition
 let chatMessages = []; // Store chat messages
 let chatChannel = null; // Supabase realtime channel for chat
+let myPlayerName = 'Guest'; // Store local player name for chat and UI
 
 // ===== AUTH MODAL FUNCTIONS =====
 function showAuthModal() {
@@ -296,10 +301,10 @@ function initializeChatSystem() {
     chatChannel = supabase.channel(`chat:${currentRoomCode}`);
     
     chatChannel
-        .on('broadcast', { event: 'message' }, (payload) => {
+        .on('broadcast', { event: 'message' }, ({ payload }) => {
             console.log('Chat message received:', payload);
-            if (payload.payload && payload.payload.player && payload.payload.text) {
-                addChatMessage(payload.payload.player, payload.payload.text);
+            if (payload && payload.player && payload.text) {
+                addChatMessage(payload.player, payload.text);
             }
         })
         .subscribe((status) => {
@@ -342,8 +347,10 @@ function initializeChatSystem() {
         sendBtn.parentNode.replaceChild(newSendBtn, sendBtn);
         newSendBtn.addEventListener('click', async () => {
             const message = chatInput.value.trim();
-            if (message && game && game.players && myPlayerIndex >= 0 && myPlayerIndex < game.players.length) {
-                const playerName = game.players[myPlayerIndex]?.name || 'Unknown';
+            if (message && currentRoomCode) {
+                const playerName = myPlayerName || 'Unknown';
+                
+                console.log('Sending message:', message, 'from:', playerName);
                 
                 // Broadcast to others
                 if (chatChannel) {
@@ -355,10 +362,9 @@ function initializeChatSystem() {
                 }
                 
                 addChatMessage(playerName, message);
-                console.log('Message sent:', playerName, '-', message);
                 chatInput.value = '';
             } else {
-                console.log('Cannot send message - missing game data or empty message');
+                console.log('Cannot send message - missing room code or empty message');
             }
         });
     }
@@ -1915,6 +1921,7 @@ function initGameUI() {
         
         const code = document.getElementById('join-code-input').value.toUpperCase().trim();
         const name = document.getElementById('join-name-input').value.trim() || 'Player';
+        myPlayerName = name;
         const emoji = document.getElementById('join-emoji-input').value || '👤';
         if (!code) return showAlert("Please enter a room code");
 
@@ -1943,6 +1950,7 @@ function initGameUI() {
         if (existingPlayer && gameInProgress) {
             // ===== REJOIN: Authenticated user returning to their existing slot =====
             myPlayerId = existingPlayer.id;
+            myPlayerName = existingPlayer.name;
             const existingPlayers = room.state.players || [];
             myPlayerIndex = existingPlayers.findIndex(p => p.id === myPlayerId);
 
@@ -2156,6 +2164,7 @@ function initGameUI() {
     // Play game
     playGameBtn.addEventListener('click', async () => {
         const name = document.getElementById('player-name').value.trim() || 'You';
+        myPlayerName = name;
         const emoji = document.getElementById('player-emoji').value || '👤';
         playerSetupMenu.classList.add('hidden');
         loadCardImages();
