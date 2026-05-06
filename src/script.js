@@ -253,14 +253,14 @@ function addChatMessage(playerName, message) {
     
     const msgElement = document.createElement('div');
     msgElement.style.cssText = `
-        background: rgba(255, 215, 0, 0.1);
-        border-left: 3px solid #FFD700;
+        background: rgba(255, 182, 193, 0.1);
+        border-left: 3px solid #FFB6C1;
         padding: 8px;
         border-radius: 4px;
         font-size: 0.9em;
         word-wrap: break-word;
     `;
-    msgElement.innerHTML = `<strong style="color: #FFD700;">${playerName}:</strong> <span style="color: white;">${escapeHtml(message)}</span>`;
+    msgElement.innerHTML = `<strong style="color: #FFB6C1;">${playerName}:</strong> <span style="color: white;">${escapeHtml(message)}</span>`;
     messagesDiv.appendChild(msgElement);
     messagesDiv.scrollTop = messagesDiv.scrollHeight;
 }
