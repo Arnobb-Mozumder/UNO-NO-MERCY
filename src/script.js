@@ -30,12 +30,33 @@ function initializeAuth() {
                 
                 console.log('✅ USER SIGNED IN - UID:', currentAuthUID, 'Name:', myPlayerName);
                 closeAuthModal();
+
+                // Update sign in button on main menu
+                const signinBtn = document.getElementById('signin-google-btn');
+                if (signinBtn) {
+                    signinBtn.innerHTML = `<span style="color: #333; font-weight: 800; font-size: 14px; padding: 0 15px; font-family: 'Outfit', sans-serif;">SIGNED IN</span>`;
+                    signinBtn.style.background = '#e2e8f0';
+                    signinBtn.style.cursor = 'default';
+                    signinBtn.title = `Signed in as ${myPlayerName}`;
+                    // Disable the click listener effectively by adding a class or just disabling
+                    signinBtn.disabled = true;
+                }
             } else {
                 currentAuthUser = null;
                 currentAuthUID = null;
                 console.log('⚠️ User signed out or not authenticated - currentAuthUID set to null');
                 // Stay in guest mode if not signed in
                 isGuestMode = true;
+
+                // Reset sign in button
+                const signinBtn = document.getElementById('signin-google-btn');
+                if (signinBtn) {
+                    signinBtn.innerHTML = `<img src="./google.png" alt="Google" style="width: 32px; height: 32px; object-fit: contain;">`;
+                    signinBtn.style.background = 'white';
+                    signinBtn.style.cursor = 'pointer';
+                    signinBtn.title = 'Sign in with Google';
+                    signinBtn.disabled = false;
+                }
             }
         });
         
