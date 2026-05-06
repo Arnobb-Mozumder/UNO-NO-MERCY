@@ -2324,12 +2324,16 @@ function initGameUI() {
     document.getElementById('back-btn-join').addEventListener('click', () => {
         joinRoomPanel.classList.add('hidden');
         multiplayerMenu.classList.remove('hidden');
+        // Resume main menu BGM when going back
+        SoundManager.playBGM('mainmenu');
     });
 
     document.getElementById('leave-room-btn').addEventListener('click', () => {
         waitingRoomMenu.classList.add('hidden');
         mainMenu.classList.remove('hidden');
         cleanupMultiplayer();
+        // Resume main menu BGM when leaving room
+        SoundManager.playBGM('mainmenu');
     });
 
     document.getElementById('start-multiplayer-btn').addEventListener('click', async () => {
@@ -2384,8 +2388,8 @@ function initGameUI() {
     document.getElementById('back-btn2').addEventListener('click', () => { 
         multiplayerMenu.classList.add('hidden'); 
         gameModeMenu.classList.remove('hidden'); 
-        // Stop multiplayer BGM when going back
-        SoundManager.stopAllBGM();
+        // Resume main menu BGM when going back to game mode menu
+        SoundManager.playBGM('mainmenu');
     });
     document.getElementById('back-btn3').addEventListener('click', () => {
         playerSetupMenu.classList.add('hidden');
@@ -2917,6 +2921,15 @@ document.addEventListener('DOMContentLoaded', () => {
     document.addEventListener('click', (e) => {
         if (e.target.tagName === 'BUTTON' || e.target.closest('button')) {
             SoundManager.playSFX('button');
+        }
+    });
+    
+    // Add quit button functionality
+    document.getElementById('quit-btn').addEventListener('click', () => {
+        if (window.opener) {
+            window.close();
+        } else {
+            alert('Cannot close browser window directly for security reasons.\n\nYou can close this tab manually or click the X button on your browser.');
         }
     });
 });
