@@ -34,12 +34,20 @@ function initializeAuth() {
                 // Update sign in button on main menu
                 const signinBtn = document.getElementById('signin-google-btn');
                 if (signinBtn) {
-                    signinBtn.innerHTML = `<span style="color: #333; font-weight: 800; font-size: 14px; padding: 0 15px; font-family: 'Outfit', sans-serif;">SIGNED IN</span>`;
-                    signinBtn.style.background = '#e2e8f0';
-                    signinBtn.style.cursor = 'default';
-                    signinBtn.title = `Signed in as ${myPlayerName}`;
-                    // Disable the click listener effectively by adding a class or just disabling
-                    signinBtn.disabled = true;
+                    signinBtn.innerHTML = `
+                        <div style="display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 6px 16px; width: 100%;">
+                            <span style="color: white; font-weight: 900; font-size: 16px; font-family: 'Outfit', sans-serif; white-space: nowrap; letter-spacing: 1px; display: block; width: max-content;">SIGNED IN</span>
+                            <span style="color: rgba(255,255,255,0.9); font-weight: 700; font-size: 10px; font-family: 'Outfit', sans-serif; white-space: nowrap; text-transform: uppercase; margin-top: 4px; display: block; width: max-content;">USE ANOTHER ACCOUNT</span>
+                        </div>
+                    `;
+                    signinBtn.style.background = 'linear-gradient(135deg, #2563eb, #dc2626, #16a34a)';
+                    signinBtn.style.cursor = 'pointer';
+                    signinBtn.style.border = '1px solid rgba(255,255,255,0.4)';
+                    signinBtn.style.width = 'auto';
+                    signinBtn.style.height = 'auto';
+                    signinBtn.style.borderRadius = '12px';
+                    signinBtn.title = `Signed in as ${myPlayerName} - Click to switch accounts`;
+                    signinBtn.disabled = false;
                 }
             } else {
                 currentAuthUser = null;
@@ -54,6 +62,9 @@ function initializeAuth() {
                     signinBtn.innerHTML = `<img src="./google.png" alt="Google" style="width: 32px; height: 32px; object-fit: contain;">`;
                     signinBtn.style.background = 'white';
                     signinBtn.style.cursor = 'pointer';
+                    signinBtn.style.width = '60px';
+                    signinBtn.style.height = '60px';
+                    signinBtn.style.borderRadius = '8px';
                     signinBtn.title = 'Sign in with Google';
                     signinBtn.disabled = false;
                 }
