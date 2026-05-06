@@ -58,7 +58,10 @@ const joinRoomPanel = document.getElementById('join-room-panel');
 const playerSetupMenu = document.getElementById('player-setup-menu');
 const gameContainer = document.getElementById('game-container');
 const gameCanvas = document.getElementById('game-canvas');
-const ctx = gameCanvas.getContext('2d');
+let ctx = null;
+if (gameCanvas) {
+    ctx = gameCanvas.getContext('2d');
+}
 const fullscreenBtn = document.getElementById('fullscreen-btn');
 const exitFullscreenBtn = document.getElementById('exit-fullscreen-btn');
 
@@ -123,6 +126,140 @@ let chatMessages = []; // Store chat messages
 let chatChannel = null; // Supabase realtime channel for chat
 let myPlayerName = 'Guest'; // Store local player name for chat and UI
 let unreadChatCount = 0; // Track unread messages for notification badge
+
+// ===== SOUND MANAGEMENT SYSTEM =====
+const SoundManager = {
+    sounds: {},
+    bgmAudio: null,
+    bgmVolume: 0.5,
+    sfxVolume: 1.0,
+    
+    // Initialize all sound effects
+    init() {
+        try {
+            // Initialize sound effects (dev server serves static files at root, prod has them in dist/)
+            this.sounds.button = new Audio('./button.mp3');
+            this.sounds.cardplay = new Audio('./cardplay.mp3');
+            this.sounds.handchange = new Audio('./handchange.mp3');
+            this.sounds.shuffle = new Audio('./shuffle.mp3');
+            this.sounds.uno = new Audio('./UNO.mp3');
+            this.sounds.roundend1 = new Audio('./roundend.mp3');
+            this.sounds.roundend2 = new Audio('./roundend2.mp3');
+            
+            // Initialize background music
+            this.bgmAudio = {
+                mainmenu: new Audio('./mainmenue.mp3'),
+                multiplayer: new Audio('./multiplayerbg.mp3')
+            };
+            
+            // Set default properties
+            Object.entries(this.sounds).forEach(([name, sound]) => {
+                sound.volume = this.sfxVolume;
+                sound.preload = 'auto';
+                sound.onerror = () => console.error(`❌ Failed to load sound: ${name}`);
+                sound.oncanplay = () => console.log(`✅ Sound loaded: ${name}`);
+            });
+            
+            // Set BGM properties
+            this.bgmAudio.mainmenu.volume = this.bgmVolume;
+            this.bgmAudio.mainmenu.loop = true;
+            this.bgmAudio.mainmenu.preload = 'auto';
+            this.bgmAudio.mainmenu.onerror = () => console.error('❌ Failed to load BGM: mainmenu');
+            this.bgmAudio.mainmenu.oncanplay = () => console.log('✅ BGM loaded: mainmenu');
+            
+            this.bgmAudio.multiplayer.volume = this.bgmVolume;
+            this.bgmAudio.multiplayer.loop = true;
+            this.bgmAudio.multiplayer.preload = 'auto';
+            this.bgmAudio.multiplayer.onerror = () => console.error('❌ Failed to load BGM: multiplayer');
+            this.bgmAudio.multiplayer.oncanplay = () => console.log('✅ BGM loaded: multiplayer');
+            
+            console.log('✅ Sound system initialized with paths:', {
+                cardplay: this.sounds.cardplay.src,
+                mainmenu: this.bgmAudio.mainmenu.src
+            });
+        } catch (err) {
+            console.error('❌ Sound initialization failed:', err);
+        }
+    },
+    
+    // Play sound effect
+    playSFX(soundName) {
+        try {
+            if (!this.sounds[soundName]) {
+                console.warn(`⚠️ Sound '${soundName}' not found`);
+                return;
+            }
+            this.sounds[soundName].currentTime = 0;
+            this.sounds[soundName].play().catch(() => {
+                // Silently handle audio play failures (common on first user interaction)
+            });
+        } catch (err) {
+            console.warn(`⚠️ Failed to play sound '${soundName}':`, err);
+        }
+    },
+    
+    // Play random round end sound
+    playRoundEndSound() {
+        try {
+            const soundName = Math.random() > 0.5 ? 'roundend1' : 'roundend2';
+            this.playSFX(soundName);
+        } catch (err) {
+            console.warn('⚠️ Failed to play round end sound:', err);
+        }
+    },
+    
+    // Play background music
+    playBGM(bgmName) {
+        try {
+            // Stop all BGM first
+            this.stopAllBGM();
+            
+            if (this.bgmAudio[bgmName]) {
+                this.bgmAudio[bgmName].currentTime = 0;
+                this.bgmAudio[bgmName].play().catch(() => {
+                    // Silently handle audio play failures
+                });
+            }
+        } catch (err) {
+            console.warn(`⚠️ Failed to play BGM '${bgmName}':`, err);
+        }
+    },
+    
+    // Stop all background music
+    stopAllBGM() {
+        try {
+            Object.values(this.bgmAudio).forEach(audio => {
+                audio.pause();
+                audio.currentTime = 0;
+            });
+        } catch (err) {
+            console.warn('⚠️ Failed to stop BGM:', err);
+        }
+    },
+    
+    // Set volume
+    setVolume(type, volume) {
+        try {
+            if (type === 'sfx') {
+                this.sfxVolume = Math.max(0, Math.min(1, volume));
+                Object.values(this.sounds).forEach(sound => {
+                    sound.volume = this.sfxVolume;
+                });
+            } else if (type === 'bgm') {
+                this.bgmVolume = Math.max(0, Math.min(1, volume));
+                if (this.bgmAudio.mainmenu) this.bgmAudio.mainmenu.volume = this.bgmVolume;
+                if (this.bgmAudio.multiplayer) this.bgmAudio.multiplayer.volume = this.bgmVolume;
+            }
+        } catch (err) {
+            console.warn('⚠️ Failed to set volume:', err);
+        }
+    }
+};
+
+// Make SoundManager globally accessible for debugging
+if (typeof window !== 'undefined') {
+    window.SoundManager = SoundManager;
+}
 
 // ===== AUTH MODAL FUNCTIONS =====
 function showAuthModal() {
@@ -669,6 +806,8 @@ class UNOGame {
             const j = Math.floor(Math.random() * (i + 1));
             [this.deck[i], this.deck[j]] = [this.deck[j], this.deck[i]];
         }
+        // Play shuffle sound
+        SoundManager.playSFX('shuffle');
     }
 
     startDiscardPile() {
@@ -734,6 +873,9 @@ class UNOGame {
         this.drawnCardIndexThisTurn = -1;
         // FIX: Reset autoPlay timer when a card is played
         lastAutoPlayTime = 0;
+        
+        // Play card sound effect
+        SoundManager.playSFX('cardplay');
 
         if (card.color === 'wild') {
             if (isBot) {
@@ -757,6 +899,8 @@ class UNOGame {
             updateColorGlow(this.chosenColor);
 
             if (card.value === '7') {
+                // Play hand change sound when 7 card is played
+                SoundManager.playSFX('handchange');
                 if (isBot) {
                     const actives = this.players.filter(p => !p.eliminated && p !== this.players[pIdx]);
                     if (actives.length > 0) {
@@ -769,6 +913,9 @@ class UNOGame {
                     this.syncState();
                     return; // Delay finishTurn
                 }
+            } else if (card.value === '0') {
+                // Play hand change sound when 0 card is played
+                SoundManager.playSFX('handchange');
             }
         }
         this.finishTurn(pIdx, player);
@@ -870,7 +1017,11 @@ class UNOGame {
             }
         }
         
-        if (drawnCount > 0) this.broadcastAlert(`${p.name.toUpperCase()} DREW A CARD!`);
+        if (drawnCount > 0) {
+            this.broadcastAlert(`${p.name.toUpperCase()} DREW A CARD!`);
+            // Play card draw sound
+            SoundManager.playSFX('cardplay');
+        }
         
         if (p.eliminated) {
             this.checkWin();
@@ -950,6 +1101,9 @@ class UNOGame {
 
     endGame(winner) {
         this.gameOver = true;
+        
+        // Play round end sound
+        SoundManager.playRoundEndSound();
         
         // Tally points based on cards remaining in opponents' hands
         let roundPoints = 0;
@@ -1655,6 +1809,8 @@ function executeBotTurn() {
         if (p.hand.length === 2 && Math.random() > 0.3) {
             p.unoCalled = true;
             showAlert(`${p.name} CALLED UNO!`);
+            // Play UNO sound when bot calls UNO
+            SoundManager.playSFX('uno');
         }
         game.playCard(game.currentPlayerIndex, idx, true);
     } else {
@@ -1950,7 +2106,10 @@ function initGameUI() {
     }
 
     // Menu buttons
-    startGameBtn.addEventListener('click', () => { mainMenu.classList.add('hidden'); gameModeMenu.classList.remove('hidden'); });
+    startGameBtn.addEventListener('click', () => { 
+        mainMenu.classList.add('hidden'); 
+        gameModeMenu.classList.remove('hidden'); 
+    });
 
     singlePlayerBtn.addEventListener('click', () => {
         isMultiplayer = false;
@@ -1959,6 +2118,8 @@ function initGameUI() {
     });
 
     multiplayerBtn.addEventListener('click', () => {
+        // Play multiplayer BGM when entering multiplayer mode
+        SoundManager.playBGM('multiplayer');
         gameModeMenu.classList.add('hidden');
         multiplayerMenu.classList.remove('hidden');
     });
@@ -2145,6 +2306,9 @@ function initGameUI() {
             waitingRoomMenu.classList.remove('hidden');
             document.getElementById('waiting-room-code').textContent = currentRoomCode;
             document.getElementById('ready-btn').classList.remove('hidden');
+            
+            // Play multiplayer background music in waiting room
+            SoundManager.playBGM('multiplayer');
 
             const updatedPlayers = [...(room.state.players || []), { name, emoji, isBot: false, id: myPlayerId, ready: false, deviceId, authUID: currentAuthUID || null }];
             myPlayerIndex = updatedPlayers.length - 1;
@@ -2210,8 +2374,19 @@ function initGameUI() {
         await updateRoomState(currentRoomCode, { ...room.state, players: updatedPlayers });
     });
 
-    document.getElementById('back-btn1').addEventListener('click', () => { gameModeMenu.classList.add('hidden'); mainMenu.classList.remove('hidden'); });
-    document.getElementById('back-btn2').addEventListener('click', () => { multiplayerMenu.classList.add('hidden'); gameModeMenu.classList.remove('hidden'); });
+    document.getElementById('back-btn1').addEventListener('click', () => { 
+        gameModeMenu.classList.add('hidden'); 
+        mainMenu.classList.remove('hidden'); 
+        // Play main menu BGM when going back to main menu
+        SoundManager.playBGM('mainmenu');
+    });
+    
+    document.getElementById('back-btn2').addEventListener('click', () => { 
+        multiplayerMenu.classList.add('hidden'); 
+        gameModeMenu.classList.remove('hidden'); 
+        // Stop multiplayer BGM when going back
+        SoundManager.stopAllBGM();
+    });
     document.getElementById('back-btn3').addEventListener('click', () => {
         playerSetupMenu.classList.add('hidden');
         if (isMultiplayer) multiplayerMenu.classList.remove('hidden');
@@ -2236,6 +2411,9 @@ function initGameUI() {
         playerSetupMenu.classList.add('hidden');
         loadCardImages();
         if (menuBackground) menuBackground.hide();
+        
+        // Stop background music when game starts
+        SoundManager.stopAllBGM();
 
         if (!isMultiplayer) {
             gameContainer.classList.remove('hidden');
@@ -2299,6 +2477,8 @@ function initGameUI() {
         if ((p.hand.length === 2 && isMyTurn && hasPlayableCard) || p.hand.length === 1) {
             p.unoCalled = true;
             game.broadcastAlert(`${p.name.toUpperCase()} CALLED UNO!`);
+            // Play UNO sound when player calls UNO
+            SoundManager.playSFX('uno');
             if (isMultiplayer) game.syncState();
         } else {
             showAlert("Can only call UNO with 1 card left, or 2 cards and a playable card on your turn!");
@@ -2320,6 +2500,8 @@ function initGameUI() {
         });
         if (caughtCount > 0) {
             game.broadcastAlert(`CAUGHT ${caughtNames.join(', ')}! +2 CARDS EACH!`);
+            // Play UNO sound when catching UNO
+            SoundManager.playSFX('uno');
             if (isMultiplayer) game.syncState();
         } else {
             showAlert("Nobody to catch!");
@@ -2724,6 +2906,19 @@ document.addEventListener('DOMContentLoaded', () => {
     loadCardImages();
     initGameUI();
     menuBackground = new MenuBackground();
+    
+    // Initialize sound system
+    SoundManager.init();
+    
+    // Play main menu BGM
+    SoundManager.playBGM('mainmenu');
+    
+    // Add global button click listener
+    document.addEventListener('click', (e) => {
+        if (e.target.tagName === 'BUTTON' || e.target.closest('button')) {
+            SoundManager.playSFX('button');
+        }
+    });
 });
 
 // ===== PLAYER HEARTBEAT (non-host only) =====
