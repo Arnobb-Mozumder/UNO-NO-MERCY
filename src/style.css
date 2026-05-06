@@ -238,6 +238,36 @@ h1.glitch-text {
 .divider:not(:empty)::before { margin-right: .5em; }
 .divider:not(:empty)::after  { margin-left: .5em; }
 
+.google-signin-square {
+    width: 60px;
+    height: 60px;
+    padding: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: linear-gradient(135deg, #4285F4, #357ABD);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 8px;
+    cursor: pointer;
+    transition: 0.3s ease;
+    box-shadow: 0 4px 15px rgba(66, 133, 244, 0.4);
+}
+
+.google-signin-square:hover {
+    background: linear-gradient(135deg, #357ABD, #2E5CB8);
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(66, 133, 244, 0.6);
+}
+
+.google-signin-square:active {
+    transform: translateY(0);
+}
+
+.google-signin-square svg {
+    width: 32px;
+    height: 32px;
+}
+
 .room-info { margin-bottom: 2rem; }
 .room-info h2 { color: var(--primary); letter-spacing: 4px; font-size: 2.5rem; }
 

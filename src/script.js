@@ -6,7 +6,7 @@ import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader';
 // ===== SUPABASE AUTH SETUP =====
 let currentAuthUser = null;
 let currentAuthUID = null;
-let isGuestMode = false;
+let isGuestMode = true; // Default to guest mode - players can start without signing in
 let phonePhoneNumber = null; // Store phone number for OTP verification
 
 // Initialize auth listener when DOM is ready
@@ -24,16 +24,19 @@ function initializeAuth() {
                 currentAuthUser = user;
                 currentAuthUID = user.id; // Supabase uses 'id' instead of 'uid'
                 isGuestMode = false;
+                console.log('User signed in:', user.email || user.phone, 'UID:', currentAuthUID);
                 closeAuthModal();
-                console.log('User signed in:', user.email || user.phone);
             } else {
                 currentAuthUser = null;
                 currentAuthUID = null;
+                console.log('User signed out or not authenticated');
+                // Stay in guest mode if not signed in
+                isGuestMode = true;
             }
         });
         
-        // Show auth modal on startup
-        setTimeout(showAuthModal, 500);
+        // Don't show auth modal on startup - let players start without signing in
+        // They can click the Sign in button to authenticate if they want
     } catch (err) {
         console.error('Auth init error:', err);
     }
@@ -246,7 +249,12 @@ function escapeHtml(text) {
 }
 
 function initializeChatSystem() {
-    if (!isMultiplayer || !currentRoomCode) return;
+    if (!isMultiplayer || !currentRoomCode) {
+        console.log('Chat system: Not in multiplayer or no room code');
+        return;
+    }
+    
+    console.log('Initializing chat system for room:', currentRoomCode);
     
     const toggleBtn = document.getElementById('toggle-chat-btn');
     const closeBtn = document.getElementById('close-chat-btn');
@@ -256,6 +264,7 @@ function initializeChatSystem() {
     if (toggleBtn) {
         toggleBtn.classList.remove('hidden');
         toggleBtn.addEventListener('click', showChatBox);
+        console.log('Chat toggle button ready');
     }
     
     if (closeBtn) {
@@ -265,7 +274,7 @@ function initializeChatSystem() {
     if (sendBtn) {
         sendBtn.addEventListener('click', () => {
             const message = chatInput.value.trim();
-            if (message) {
+            if (message && game && game.players && myPlayerIndex >= 0 && myPlayerIndex < game.players.length) {
                 const playerName = game.players[myPlayerIndex]?.name || 'Unknown';
                 addChatMessage(playerName, message);
                 
@@ -461,7 +470,7 @@ class MenuBackground {
 // ===== UNO GAME CLASS =====
 class UNOGame {
     constructor(playerConfigs, scores = {}) {
-        this.players = playerConfigs.map(cfg => new Player(cfg.name, cfg.emoji, cfg.isBot, cfg.id, cfg.isHost || false));
+        this.players = playerConfigs.map(cfg => new Player(cfg.name, cfg.emoji, cfg.isBot, cfg.id, cfg.isHost || false, cfg.deviceId || null, cfg.authUID || null));
         this.deck = [];
         this.discardPile = [];
         this.currentPlayerIndex = 0;
@@ -1539,7 +1548,7 @@ function applyRemoteState(newState) {
             return player;
         } else {
             // Create new player if doesn't exist
-            const newPlayer = new Player(p.name, p.emoji, p.isBot, p.id, p.isHost || false);
+            const newPlayer = new Player(p.name, p.emoji, p.isBot, p.id, p.isHost || false, p.deviceId, p.authUID);
             newPlayer.hand = p.hand.map(makeCard).filter(Boolean);
             newPlayer.unoCalled = p.unoCalled;
             newPlayer.eliminated = p.eliminated;
@@ -1653,7 +1662,7 @@ function initGameUI() {
         
         if (!isMultiplayer) {
             // Single player: just start a new round
-            const currentPlayers = game.players.map(p => ({ name: p.name, emoji: p.emoji, isBot: p.isBot, id: p.id }));
+            const currentPlayers = game.players.map(p => ({ name: p.name, emoji: p.emoji, isBot: p.isBot, id: p.id, authUID: p.authUID, deviceId: p.deviceId }));
             game = new UNOGame(currentPlayers, passedScores);
             myPlayerIndex = 0;
             gameOverModal.classList.add('hidden');
@@ -1668,7 +1677,7 @@ function initGameUI() {
         return;
     }
 
-    const currentPlayers = game.players.map(p => ({ name: p.name, emoji: p.emoji, isBot: false, id: p.id }));
+    const currentPlayers = game.players.map(p => ({ name: p.name, emoji: p.emoji, isBot: false, id: p.id, authUID: p.authUID, deviceId: p.deviceId }));
     const freshGame = new UNOGame(currentPlayers, passedScores);
     game = freshGame;
     const me = game.players.findIndex(p => p.id === myPlayerId);
@@ -1703,12 +1712,8 @@ function initGameUI() {
 
     // ===== AUTH MODAL LISTENERS =====
     const googleLoginBtn = document.getElementById('google-login-btn');
-    const phoneLoginBtn = document.getElementById('phone-login-btn');
-    const guestContinueBtn = document.getElementById('guest-continue-btn');
-    const sendOtpBtn = document.getElementById('send-otp-btn');
-    const verifyOtpBtn = document.getElementById('verify-otp-btn');
-    const cancelPhoneBtn = document.getElementById('cancel-phone-btn');
-    const cancelOtpBtn = document.getElementById('cancel-otp-btn');
+    const closeAuthBtn = document.getElementById('close-auth-btn');
+    const signinGoogleBtn = document.getElementById('signin-google-btn');
     
     if (googleLoginBtn) {
         googleLoginBtn.addEventListener('click', async () => {
@@ -1734,80 +1739,18 @@ function initGameUI() {
         });
     }
     
-    if (phoneLoginBtn) {
-        phoneLoginBtn.addEventListener('click', () => {
-            document.getElementById('auth-buttons').classList.add('hidden');
-            document.getElementById('phone-input-section').classList.remove('hidden');
-            document.getElementById('guest-option').classList.add('hidden');
-        });
-    }
-    
-    if (sendOtpBtn) {
-        sendOtpBtn.addEventListener('click', async () => {
-            const phoneNumber = document.getElementById('phone-number-input').value.trim();
-            if (!phoneNumber) return showAlert('Please enter a phone number');
-            
-            showAuthLoading(true);
-            try {
-                const result = await signInWithPhone(phoneNumber);
-                if (result.success) {
-                    // Store the formatted phone number for verification
-                    phonePhoneNumber = result.phone;
-                    document.getElementById('phone-input-section').classList.add('hidden');
-                    document.getElementById('otp-input-section').classList.remove('hidden');
-                    showAlert('✅ OTP sent to ' + result.phone);
-                    showAuthLoading(false);
-                } else {
-                    showAlert('❌ ' + result.error);
-                    showAuthLoading(false);
-                }
-            } catch (error) {
-                showAlert('❌ Error: ' + error.message);
-                showAuthLoading(false);
-            }
-        });
-    }
-    
-    if (verifyOtpBtn) {
-        verifyOtpBtn.addEventListener('click', async () => {
-            const otp = document.getElementById('otp-input').value.trim();
-            if (!otp || otp.length !== 6) return showAlert('Please enter a valid 6-digit OTP');
-            
-            showAuthLoading(true);
-            try {
-                const result = await verifyPhoneOtp(phonePhoneNumber, otp);
-                if (result.success) {
-                    showAlert('✅ Phone number verified!');
-                } else {
-                    showAlert('❌ OTP verification failed: ' + result.error);
-                    showAuthLoading(false);
-                }
-            } catch (error) {
-                showAlert('❌ Error: ' + error.message);
-                showAuthLoading(false);
-            }
-        });
-    }
-    
-    if (cancelPhoneBtn) {
-        cancelPhoneBtn.addEventListener('click', () => {
-            document.getElementById('phone-input-section').classList.add('hidden');
-            document.getElementById('auth-buttons').classList.remove('hidden');
-            document.getElementById('guest-option').classList.remove('hidden');
-        });
-    }
-    
-    if (cancelOtpBtn) {
-        cancelOtpBtn.addEventListener('click', () => {
-            document.getElementById('otp-input-section').classList.add('hidden');
-            document.getElementById('phone-input-section').classList.remove('hidden');
-        });
-    }
-    
-    if (guestContinueBtn) {
-        guestContinueBtn.addEventListener('click', () => {
-            isGuestMode = true;
+    // Close auth modal button
+    if (closeAuthBtn) {
+        closeAuthBtn.addEventListener('click', () => {
             closeAuthModal();
+        });
+    }
+    
+    // Sign in with Google button in main menu
+    if (signinGoogleBtn) {
+        signinGoogleBtn.addEventListener('click', () => {
+            mainMenu.classList.add('hidden');
+            showAuthModal();
         });
     }
 
@@ -1842,8 +1785,11 @@ function initGameUI() {
     document.getElementById('confirm-join-btn').addEventListener('click', async () => {
         // Only authenticated users or guests can join multiplayer
         if (!currentAuthUID && !isGuestMode) {
+            console.log('Join attempt - Auth check failed. currentAuthUID:', currentAuthUID, 'isGuestMode:', isGuestMode);
             return showAlert("❌ Please sign in or continue as guest");
         }
+        
+        console.log('Joining room - Auth UID:', currentAuthUID, 'Guest mode:', isGuestMode);
         
         const code = document.getElementById('join-code-input').value.toUpperCase().trim();
         const name = document.getElementById('join-name-input').value.trim() || 'Player';
@@ -1864,6 +1810,7 @@ function initGameUI() {
         
         // Check if this authenticated user already has a player in the game
         const existingPlayer = currentAuthUID ? findPlayerByAuthUID(room.state.players || [], currentAuthUID) : null;
+        console.log('Existing player found:', existingPlayer ? existingPlayer.name : 'None', 'Auth UID:', currentAuthUID);
         
         if (existingPlayer && gameInProgress) {
             // RECONNECT: Same authenticated user returning during game
@@ -2206,7 +2153,7 @@ function setupMultiplayerSubscription() {
                 else waitMsg.textContent = "✅ Everyone is ready! You can start.";
             }
             // Keep host's game player list in sync
-            if (game) game.players = newState.players.map(p => new Player(p.name, p.emoji, p.isBot, p.id));
+            if (game) game.players = newState.players.map(p => new Player(p.name, p.emoji, p.isBot, p.id, false, p.deviceId, p.authUID));
         }
 
         // Game start for non-host (initial start OR new round)

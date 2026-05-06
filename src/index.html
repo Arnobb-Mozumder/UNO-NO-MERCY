@@ -26,7 +26,7 @@
     <div id="auth-modal" class="modal-overlay hidden">
         <div class="modal-card glass" style="max-width: 450px;">
             <h1 style="margin-bottom: 1rem;">UNO NO MERCY</h1>
-            <p style="margin-bottom: 2rem; color: var(--text-dim); font-size: 0.95em;">Sign in to save your progress and enjoy multiplayer</p>
+            <p style="margin-bottom: 2rem; color: var(--text-dim); font-size: 0.95em;">Sign in with Google to save progress and rejoin games</p>
             
             <div id="auth-loading" class="hidden" style="text-align: center; padding: 2rem;">
                 <p style="font-size: 1.2em; color: var(--accent);">Signing in...</p>
@@ -36,27 +36,10 @@
                 <button id="google-login-btn" class="primary-btn" style="background: linear-gradient(135deg, #4285F4, #357ABD); display: flex; align-items: center; justify-content: center; gap: 10px;">
                     <span>🔵</span> Sign in with Google
                 </button>
-                <button id="phone-login-btn" class="secondary-btn" style="display: flex; align-items: center; justify-content: center; gap: 10px;">
-                    <span>📱</span> Sign in with Phone
-                </button>
             </div>
             
-            <div id="phone-input-section" class="hidden">
-                <input type="tel" id="phone-number-input" placeholder="+880XXXXXXXXXX (Bangladesh) or +[country code][number]" maxlength="20" style="width: 100%; padding: 12px; margin-bottom: 12px; border: 1px solid rgba(255,255,255,0.2); border-radius: 8px; background: rgba(0,0,0,0.3); color: white; font-size: 1em;">
-                <p style="font-size: 0.85em; color: #FFD700; margin-bottom: 12px;">💡 Bangladesh: +880 followed by 10 digits (e.g., +8809123456789)</p>
-                <button id="send-otp-btn" class="primary-btn" style="width: 100%;">Send OTP</button>
-                <button id="cancel-phone-btn" class="secondary-btn" style="width: 100%; margin-top: 8px;">Cancel</button>
-            </div>
-            
-            <div id="otp-input-section" class="hidden">
-                <input type="text" id="otp-input" placeholder="Enter 6-digit OTP" maxlength="6" style="width: 100%; padding: 12px; margin-bottom: 12px; border: 1px solid rgba(255,255,255,0.2); border-radius: 8px; background: rgba(0,0,0,0.3); color: white; font-size: 1.2em; text-align: center; letter-spacing: 4px;">
-                <button id="verify-otp-btn" class="primary-btn" style="width: 100%;">Verify OTP</button>
-                <button id="cancel-otp-btn" class="secondary-btn" style="width: 100%; margin-top: 8px;">Cancel</button>
-            </div>
-            
-            <div id="guest-option" style="text-align: center; padding-top: 1rem; border-top: 1px solid rgba(255,255,255,0.1);">
-                <p style="color: var(--text-dim); margin-bottom: 0.75rem;">Or continue as</p>
-                <button id="guest-continue-btn" class="secondary-btn" style="width: 100%;">Continue as Guest (Single Player Only)</button>
+            <div style="text-align: center; padding-top: 1rem; border-top: 1px solid rgba(255,255,255,0.1);">
+                <button id="close-auth-btn" class="secondary-btn" style="width: 100%;">← Back to Menu</button>
             </div>
         </div>
     </div>
@@ -67,6 +50,13 @@
         <div class="menu-actions">
             <button id="start-game-btn" class="primary-btn">Start Game</button>
             <button id="quit-btn" class="secondary-btn large-btn">Quit</button>
+            <div style="margin-top: 1rem;">
+                <button id="signin-google-btn" class="google-signin-square" title="Sign in with Google">
+                    <svg width="32" height="32" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M12 0C5.37 0 0 5.37 0 12c0 5.25 3.75 9.52 8.44 10.39V14.65H5.9V12h2.54V9.54c0-2.84 1.69-4.41 4.28-4.41 1.24 0 2.54.22 2.54.22v2.79h-1.43c-1.41 0-1.85.88-1.85 1.78V12h3.14l-.5 2.65h-2.64v8.07C19.32 21.57 24 17.39 24 12c0-6.63-5.37-12-12-12z" fill="white"/>
+                    </svg>
+                </button>
+            </div>
         </div>
     </div>
 
