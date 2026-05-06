@@ -122,6 +122,7 @@ let deviceId = null; // Unique device identifier for player recognition
 let chatMessages = []; // Store chat messages
 let chatChannel = null; // Supabase realtime channel for chat
 let myPlayerName = 'Guest'; // Store local player name for chat and UI
+let unreadChatCount = 0; // Track unread messages for notification badge
 
 // ===== AUTH MODAL FUNCTIONS =====
 function showAuthModal() {
@@ -217,12 +218,33 @@ function showAlert(message) {
 // ===== MULTIPLAYER CHAT SYSTEM =====
 function showChatBox() {
     const chatContainer = document.getElementById('chatbox-container');
-    if (chatContainer) chatContainer.classList.remove('hidden');
+    if (chatContainer) {
+        chatContainer.classList.remove('hidden');
+        // Reset unread count and hide badges
+        unreadChatCount = 0;
+        updateChatBadgeUI();
+    }
 }
 
 function hideChatBox() {
     const chatContainer = document.getElementById('chatbox-container');
     if (chatContainer) chatContainer.classList.add('hidden');
+    // Also hide emoji picker if it was open
+    const picker = document.getElementById('chat-emoji-picker');
+    if (picker) picker.classList.add('hidden');
+}
+
+function updateChatBadgeUI() {
+    const hudBadge = document.getElementById('chat-badge-hud');
+    const lobbyBadge = document.getElementById('chat-badge-lobby');
+    
+    if (unreadChatCount > 0) {
+        if (hudBadge) { hudBadge.textContent = unreadChatCount > 9 ? '9+' : unreadChatCount; hudBadge.classList.remove('hidden'); }
+        if (lobbyBadge) { lobbyBadge.textContent = unreadChatCount > 9 ? '9+' : unreadChatCount; lobbyBadge.classList.remove('hidden'); }
+    } else {
+        if (hudBadge) hudBadge.classList.add('hidden');
+        if (lobbyBadge) lobbyBadge.classList.add('hidden');
+    }
 }
 
 function addChatMessage(playerName, message) {
@@ -305,6 +327,13 @@ function initializeChatSystem() {
             console.log('Chat message received:', payload);
             if (payload && payload.player && payload.text) {
                 addChatMessage(payload.player, payload.text);
+                
+                // If chatbox is closed, increment unread count and show badge
+                const chatContainer = document.getElementById('chatbox-container');
+                if (chatContainer && chatContainer.classList.contains('hidden')) {
+                    unreadChatCount++;
+                    updateChatBadgeUI();
+                }
             }
         })
         .subscribe((status) => {
@@ -341,6 +370,38 @@ function initializeChatSystem() {
         closeBtn.parentNode.replaceChild(newCloseBtn, closeBtn);
         newCloseBtn.addEventListener('click', hideChatBox);
     }
+
+    // Setup Emoji Picker
+    const emojiBtn = document.getElementById('chat-emoji-btn');
+    const emojiPicker = document.getElementById('chat-emoji-picker');
+    if (emojiBtn && emojiPicker) {
+        const newEmojiBtn = emojiBtn.cloneNode(true);
+        emojiBtn.parentNode.replaceChild(newEmojiBtn, emojiBtn);
+        newEmojiBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            emojiPicker.classList.toggle('hidden');
+        });
+        
+        // Hide picker when clicking elsewhere
+        document.addEventListener('click', (e) => {
+            if (!emojiPicker.classList.contains('hidden') && !emojiPicker.contains(e.target) && e.target !== newEmojiBtn) {
+                emojiPicker.classList.add('hidden');
+            }
+        });
+    }
+
+    // Emoji options
+    document.querySelectorAll('.chat-emoji-opt').forEach(opt => {
+        const newOpt = opt.cloneNode(true);
+        opt.parentNode.replaceChild(newOpt, opt);
+        newOpt.addEventListener('click', (e) => {
+            const input = document.getElementById('chat-input');
+            if (input) {
+                input.value += newOpt.textContent;
+                input.focus();
+            }
+        });
+    });
     
     if (sendBtn) {
         const newSendBtn = sendBtn.cloneNode(true);
