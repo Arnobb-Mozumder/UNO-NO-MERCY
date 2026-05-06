@@ -24,12 +24,12 @@ function initializeAuth() {
                 currentAuthUser = user;
                 currentAuthUID = user.id; // Supabase uses 'id' instead of 'uid'
                 isGuestMode = false;
-                console.log('User signed in:', user.email || user.phone, 'UID:', currentAuthUID);
+                console.log('✅ USER SIGNED IN - UID:', currentAuthUID, 'Email/Phone:', user.email || user.phone);
                 closeAuthModal();
             } else {
                 currentAuthUser = null;
                 currentAuthUID = null;
-                console.log('User signed out or not authenticated');
+                console.log('⚠️ User signed out or not authenticated - currentAuthUID set to null');
                 // Stay in guest mode if not signed in
                 isGuestMode = true;
             }
@@ -212,16 +212,12 @@ function showAlert(message) {
 // ===== MULTIPLAYER CHAT SYSTEM =====
 function showChatBox() {
     const chatContainer = document.getElementById('chatbox-container');
-    const toggleBtn = document.getElementById('toggle-chat-btn');
     if (chatContainer) chatContainer.classList.remove('hidden');
-    if (toggleBtn) toggleBtn.classList.add('hidden');
 }
 
 function hideChatBox() {
     const chatContainer = document.getElementById('chatbox-container');
-    const toggleBtn = document.getElementById('toggle-chat-btn');
     if (chatContainer) chatContainer.classList.add('hidden');
-    if (toggleBtn && isMultiplayer) toggleBtn.classList.remove('hidden');
 }
 
 function addChatMessage(playerName, message) {
@@ -256,38 +252,41 @@ function initializeChatSystem() {
     
     console.log('Initializing chat system for room:', currentRoomCode);
     
-    const toggleBtn = document.getElementById('toggle-chat-btn');
+    // Remove any previous listeners to prevent duplicates
+    const chatTriggerBtn = document.getElementById('chat-trigger-btn');
     const closeBtn = document.getElementById('close-chat-btn');
     const sendBtn = document.getElementById('send-chat-btn');
     const chatInput = document.getElementById('chat-input');
     
-    if (toggleBtn) {
-        toggleBtn.classList.remove('hidden');
-        toggleBtn.addEventListener('click', showChatBox);
-        console.log('Chat toggle button ready');
+    // Create fresh button element to remove old listeners
+    if (chatTriggerBtn) {
+        const newBtn = chatTriggerBtn.cloneNode(true);
+        chatTriggerBtn.parentNode.replaceChild(newBtn, chatTriggerBtn);
+        newBtn.addEventListener('click', () => {
+            showChatBox();
+            console.log('Chat box opened');
+        });
+        console.log('Chat trigger button ready');
     }
     
     if (closeBtn) {
-        closeBtn.addEventListener('click', hideChatBox);
+        const newCloseBtn = closeBtn.cloneNode(true);
+        closeBtn.parentNode.replaceChild(newCloseBtn, closeBtn);
+        newCloseBtn.addEventListener('click', hideChatBox);
     }
     
     if (sendBtn) {
-        sendBtn.addEventListener('click', () => {
+        const newSendBtn = sendBtn.cloneNode(true);
+        sendBtn.parentNode.replaceChild(newSendBtn, sendBtn);
+        newSendBtn.addEventListener('click', () => {
             const message = chatInput.value.trim();
             if (message && game && game.players && myPlayerIndex >= 0 && myPlayerIndex < game.players.length) {
                 const playerName = game.players[myPlayerIndex]?.name || 'Unknown';
                 addChatMessage(playerName, message);
-                
-                // Broadcast message to other players via Supabase
-                if (supabase && currentRoomCode) {
-                    supabase.realtime.send({
-                        type: 'broadcast',
-                        event: 'chat_message',
-                        payload: { playerName, message, roomCode: currentRoomCode }
-                    }).catch(err => console.log('Chat broadcast error:', err));
-                }
-                
+                console.log('Message sent:', playerName, '-', message);
                 chatInput.value = '';
+            } else {
+                console.log('Cannot send message - missing game data');
             }
         });
     }
@@ -295,7 +294,8 @@ function initializeChatSystem() {
     if (chatInput) {
         chatInput.addEventListener('keypress', (e) => {
             if (e.key === 'Enter') {
-                sendBtn.click();
+                const sendBtn = document.getElementById('send-chat-btn');
+                if (sendBtn) sendBtn.click();
             }
         });
     }
@@ -1810,7 +1810,13 @@ function initGameUI() {
         
         // Check if this authenticated user already has a player in the game
         const existingPlayer = currentAuthUID ? findPlayerByAuthUID(room.state.players || [], currentAuthUID) : null;
-        console.log('Existing player found:', existingPlayer ? existingPlayer.name : 'None', 'Auth UID:', currentAuthUID);
+        console.log('=== REJOIN CHECK ===');
+        console.log('Current Auth UID:', currentAuthUID);
+        console.log('Room players:', room.state.players || []);
+        console.log('Room players authUIDs:', (room.state.players || []).map(p => ({ name: p.name, authUID: p.authUID, id: p.id })));
+        console.log('Game in progress:', gameInProgress);
+        console.log('Existing player found:', existingPlayer ? existingPlayer.name : 'None');
+        console.log('====================');
         
         if (existingPlayer && gameInProgress) {
             // RECONNECT: Same authenticated user returning during game
@@ -1914,12 +1920,26 @@ function initGameUI() {
     });
 
     document.getElementById('start-multiplayer-btn').addEventListener('click', async () => {
-        if (!isHost || !game) return;
-        const currentPlayers = game.players.map(p => ({ name: p.name, emoji: p.emoji, isBot: false, id: p.id, deviceId: p.deviceId, authUID: p.authUID }));
+        if (!isHost) return;
+        
+        // Fetch latest room state to get all players with correct authUIDs
+        const latestRoom = await joinRoom(currentRoomCode);
+        if (!latestRoom || !latestRoom.state.players) return showAlert("Failed to start game!");
+        
+        // Create fresh game with all players from latest room state (preserves authUIDs)
+        const currentPlayers = latestRoom.state.players.map(p => ({ 
+            name: p.name, 
+            emoji: p.emoji, 
+            isBot: false, 
+            id: p.id, 
+            deviceId: p.deviceId, 
+            authUID: p.authUID 
+        }));
+        
         const freshGame = new UNOGame(currentPlayers);
         game = freshGame;
         myPlayerIndex = 0;
-        lastAutoPlayTime = 0; // FIX: Reset autoPlay timer for new multiplayer game
+        lastAutoPlayTime = 0;
         waitingRoomMenu.classList.add('hidden');
         gameContainer.classList.remove('hidden');
         if (isMobile()) fullscreenBtn.classList.remove('hidden');
@@ -2176,7 +2196,22 @@ function setupMultiplayerSubscription() {
                 }
 
                 const makeCard = (c) => c ? new Card(c.color, c.value, c.filename) : null;
-                game = new UNOGame(newState.players, newState.scores || {});
+                
+                // Ensure authUID is preserved for all players
+                const playersWithAuth = newState.players.map(p => ({
+                    name: p.name,
+                    emoji: p.emoji,
+                    isBot: p.isBot || false,
+                    id: p.id,
+                    isHost: p.isHost || false,
+                    deviceId: p.deviceId || null,
+                    authUID: p.authUID || null,
+                    hand: p.hand,
+                    eliminated: p.eliminated || false,
+                    unoCalled: p.unoCalled || false
+                }));
+                
+                game = new UNOGame(playersWithAuth, newState.scores || {});
                 game.deck = newState.deck.map(makeCard).filter(Boolean);
                 game.discardPile = newState.discardPile.map(makeCard).filter(Boolean);
                 game.currentPlayerIndex = newState.currentPlayerIndex;
@@ -2187,12 +2222,16 @@ function setupMultiplayerSubscription() {
                 game.waitingForColor = newState.waitingForColor;
                 game.scores = newState.scores || {};
                 game.nextRoundReadySet = {};
-                lastAutoPlayTime = 0; // FIX: Reset autoPlay timer when game state is received
+                lastAutoPlayTime = 0;
 
-                // Sync player hands
+                // Sync player hands and restore any eliminated status
                 game.players.forEach((local, idx) => {
                     const p = newState.players[idx];
-                    if (p) local.hand = p.hand.map(makeCard).filter(Boolean);
+                    if (p) {
+                        local.hand = p.hand.map(makeCard).filter(Boolean);
+                        local.eliminated = p.eliminated || false;
+                        local.unoCalled = p.unoCalled || false;
+                    }
                 });
 
                 const me = game.players.findIndex(p => p.id === myPlayerId);

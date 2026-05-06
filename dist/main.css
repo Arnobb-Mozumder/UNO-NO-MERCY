@@ -265,6 +265,8 @@ h1.glitch-text {
 .google-signin-square svg {
     width: 32px;
     height: 32px;
+    margin: 0;
+    padding: 0;
 }
 
 .room-info { margin-bottom: 2rem; }
