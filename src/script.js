@@ -1949,6 +1949,8 @@ function applyRemoteState(newState) {
     const me = game.players.findIndex(p => p.id === myPlayerId);
     if (me !== -1) myPlayerIndex = me;
 
+    const justFinished = game && !game.gameOver && newState.gameOver;
+
     // Sync game fields
     game.gameDirection = newState.gameDirection;
     game.stackPenalty = newState.stackPenalty;
@@ -1973,6 +1975,11 @@ function applyRemoteState(newState) {
         showAlert(newState.lastAlert);
         game.lastAlert = newState.lastAlert;
         game.lastAlertTime = newState.lastAlertTime;
+        
+        // Play UNO sound for remote clients if applicable
+        if (newState.lastAlert.includes("CALLED UNO!") || newState.lastAlert.includes("CAUGHT ")) {
+            SoundManager.playSFX('uno');
+        }
     }
 
     // Handle waiting states
@@ -1992,6 +1999,9 @@ function applyRemoteState(newState) {
     }
 
     if (newState.gameOver && game) {
+        if (justFinished) {
+            SoundManager.playRoundEndSound();
+        }
         // Find winner based on new state
         const winner = newState.players.find(p => p.hand.length === 0) || newState.players.filter(p => !p.eliminated)[0];
         if (winner) {
