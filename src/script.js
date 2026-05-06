@@ -1187,7 +1187,7 @@ function loadCardImages() {
         'red9.png', 'redblock.png', 'redrevrese.png', 'redskipall.png', 'reverse4+.png', 'yellow0.png',
         'yellow1.png', 'yellow2+.png', 'yellow2.png', 'yellow3.png', 'yellow4+.png', 'yellow4.png',
         'yellow5.png', 'yellow6.png', 'yellow7.png', 'yellow8.png', 'yellow9.png', 'yellowblock.png',
-        'yellowrevrese.png', 'yellowskipall.png'
+        'yellowrevrese.png', 'yellowskipall.png', 'woodbg.png'
     ];
     staticFiles.forEach(file => {
         if (!cardImages[file]) {
@@ -1259,15 +1259,21 @@ function draw() {
         ctx.clearRect(0, 0, gameCanvas.width, gameCanvas.height);
     }
 
-    // Cache gradient to avoid recreating every frame
-    if (!cachedGradient) {
-        const grad = ctx.createRadialGradient(gameCanvas.width/2, gameCanvas.height/2, 0, gameCanvas.width/2, gameCanvas.height/2, gameCanvas.width*0.8);
-        grad.addColorStop(0, '#1e293b');
-        grad.addColorStop(1, '#080c14');
-        cachedGradient = grad;
+    // Use woodbg.png as background if loaded, else fallback to gradient
+    const gameBg = cardImages['woodbg.png'];
+    if (gameBg && gameBg.complete && gameBg.naturalWidth > 0) {
+        ctx.drawImage(gameBg, 0, 0, gameCanvas.width, gameCanvas.height);
+    } else {
+        // Cache gradient to avoid recreating every frame
+        if (!cachedGradient) {
+            const grad = ctx.createRadialGradient(gameCanvas.width/2, gameCanvas.height/2, 0, gameCanvas.width/2, gameCanvas.height/2, gameCanvas.width*0.8);
+            grad.addColorStop(0, '#1e293b');
+            grad.addColorStop(1, '#080c14');
+            cachedGradient = grad;
+        }
+        ctx.fillStyle = cachedGradient;
+        ctx.fillRect(0, 0, gameCanvas.width, gameCanvas.height);
     }
-    ctx.fillStyle = cachedGradient;
-    ctx.fillRect(0, 0, gameCanvas.width, gameCanvas.height);
 
     // Vignette - simplified on mobile to reduce overhead
     if (!isMobile() || !isScrolling) {
