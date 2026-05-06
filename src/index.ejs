@@ -6,7 +6,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <title>UNO-NO MERCY | Premium Edition</title>
+    <title>UNO-NO MERCY by Arnob Mozumder</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link
@@ -15,6 +15,8 @@
     <link rel="stylesheet" href="./style.css">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+
 </head>
 
 <body>
@@ -40,7 +42,7 @@
             <div id="auth-buttons" style="display: flex; flex-direction: column; gap: 12px; margin-bottom: 1.5rem;">
                 <button id="google-login-btn" class="primary-btn"
                     style="background: linear-gradient(135deg, #FF416C, #20BF55, #01BAEF); display: flex; align-items: center; justify-content: center; gap: 12px; font-weight: 700; border: none; box-shadow: 0 4px 15px rgba(0,0,0,0.3);">
-                    <img src="../static/google.png" alt="Google"
+                    <img src="./google.png" alt="Google"
                         style="width: 20px; height: 20px; object-fit: contain;"> SIGN IN WITH GOOGLE
                 </button>
             </div>
@@ -53,14 +55,14 @@
 
     <!-- ===== MAIN MENU ===== -->
     <div id="main-menu" class="menu glass">
-        <h1 class="glitch-text">UNO NO MERCY</h1>
+        <h1 class="glitch-text">UNO-NO MERCY</h1>
         <div class="menu-actions">
             <button id="start-game-btn" class="primary-btn">Start Game</button>
             <button id="quit-btn" class="secondary-btn large-btn">Quit</button>
             <div style="margin-top: 1.5rem; display: flex; justify-content: center; width: 100%;">
                 <button id="signin-google-btn" class="google-signin-square" title="Sign in with Google"
                     style="padding: 0; display: flex; align-items: center; justify-content: center; overflow: hidden; background: white; border: 1px solid rgba(255,255,255,0.2); box-shadow: 0 8px 32px rgba(0,0,0,0.3);">
-                    <img src="../static/google.png" alt="Google"
+                    <img src="./google.png" alt="Google"
                         style="width: 32px; height: 32px; object-fit: contain;">
                 </button>
             </div>
@@ -72,11 +74,11 @@
         <h2>Select Mode</h2>
         <div class="menu-grid">
             <button id="single-player-btn" class="mode-btn">
-                <span class="icon"><img width="70px" src="../static/singlep.png" alt="👤"></span>
+                <span class="icon"><img width="70px" src="./singlep.png" alt="👤"></span>
                 <span>Single Player</span>
             </button>
             <button id="multiplayer-btn" class="mode-btn">
-                <span class="icon"><img width="70px" src="../static/multip.png" alt="🌐"></span>
+                <span class="icon"><img width="70px" src="./multip.png" alt="🌐"></span>
                 <span>Multiplayer</span>
             </button>
         </div>
@@ -372,7 +374,6 @@
         }
     </style>
 
-    <script type="module" src="./script.js"></script>
 </body>
 
 </html>

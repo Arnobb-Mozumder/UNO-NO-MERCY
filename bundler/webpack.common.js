@@ -20,8 +20,9 @@ module.exports = {
             ]
         }),
         new HtmlWebpackPlugin({
-            template: path.resolve(__dirname, '../src/index.html'),
-            minify: true
+            template: path.resolve(__dirname, '../src/index.ejs'),
+            minify: true,
+            favicon: path.resolve(__dirname, '../static/background.png')
         }),
         new MiniCSSExtractPlugin()
     ],

@@ -133,6 +133,7 @@ const SoundManager = {
     bgmAudio: null,
     bgmVolume: 0.5,
     sfxVolume: 1.0,
+    currentBGMName: null, // Track which BGM should be playing
     
     // Initialize all sound effects
     init() {
@@ -173,10 +174,7 @@ const SoundManager = {
             this.bgmAudio.multiplayer.onerror = () => console.error('❌ Failed to load BGM: multiplayer');
             this.bgmAudio.multiplayer.oncanplay = () => console.log('✅ BGM loaded: multiplayer');
             
-            console.log('✅ Sound system initialized with paths:', {
-                cardplay: this.sounds.cardplay.src,
-                mainmenu: this.bgmAudio.mainmenu.src
-            });
+            console.log('✅ Sound system initialized');
         } catch (err) {
             console.error('❌ Sound initialization failed:', err);
         }
@@ -210,28 +208,62 @@ const SoundManager = {
     
     // Play background music
     playBGM(bgmName) {
+        if (!bgmName) return;
         try {
-            // Stop all BGM first
-            this.stopAllBGM();
+            // Track what should be playing
+            this.currentBGMName = bgmName;
             
-            if (this.bgmAudio[bgmName]) {
-                this.bgmAudio[bgmName].currentTime = 0;
-                this.bgmAudio[bgmName].play().catch(() => {
-                    // Silently handle audio play failures
-                });
+            if (!this.bgmAudio) return;
+            
+            const audio = this.bgmAudio[bgmName];
+            if (!audio) return;
+            
+            // Stop all other BGM first
+            Object.keys(this.bgmAudio).forEach(key => {
+                if (key !== bgmName) {
+                    this.bgmAudio[key].pause();
+                    this.bgmAudio[key].currentTime = 0;
+                }
+            });
+            
+            // Only reset if it's not already playing
+            if (audio.paused) {
+                audio.currentTime = 0;
+                const playPromise = audio.play();
+                if (playPromise !== undefined) {
+                    playPromise.catch(err => {
+                        console.log(`🔇 Autoplay blocked for ${bgmName}. Will resume on interaction.`);
+                    });
+                }
             }
         } catch (err) {
             console.warn(`⚠️ Failed to play BGM '${bgmName}':`, err);
         }
     },
     
+    // Explicitly unlock audio context on user interaction
+    unlock() {
+        if (!this.bgmAudio || !this.currentBGMName) return;
+        const audio = this.bgmAudio[this.currentBGMName];
+        if (audio && audio.paused) {
+            audio.play().then(() => {
+                console.log(`🔊 Audio context unlocked for: ${this.currentBGMName}`);
+            }).catch(() => {
+                // Still blocked
+            });
+        }
+    },
+    
     // Stop all background music
     stopAllBGM() {
         try {
-            Object.values(this.bgmAudio).forEach(audio => {
-                audio.pause();
-                audio.currentTime = 0;
-            });
+            this.currentBGMName = null;
+            if (this.bgmAudio) {
+                Object.values(this.bgmAudio).forEach(audio => {
+                    audio.pause();
+                    audio.currentTime = 0;
+                });
+            }
         } catch (err) {
             console.warn('⚠️ Failed to stop BGM:', err);
         }
@@ -247,8 +279,10 @@ const SoundManager = {
                 });
             } else if (type === 'bgm') {
                 this.bgmVolume = Math.max(0, Math.min(1, volume));
-                if (this.bgmAudio.mainmenu) this.bgmAudio.mainmenu.volume = this.bgmVolume;
-                if (this.bgmAudio.multiplayer) this.bgmAudio.multiplayer.volume = this.bgmVolume;
+                if (this.bgmAudio) {
+                    if (this.bgmAudio.mainmenu) this.bgmAudio.mainmenu.volume = this.bgmVolume;
+                    if (this.bgmAudio.multiplayer) this.bgmAudio.multiplayer.volume = this.bgmVolume;
+                }
             }
         } catch (err) {
             console.warn('⚠️ Failed to set volume:', err);
@@ -2107,11 +2141,14 @@ function initGameUI() {
 
     // Menu buttons
     startGameBtn.addEventListener('click', () => { 
+        // Ensure music plays on interaction
+        SoundManager.playBGM('mainmenu');
         mainMenu.classList.add('hidden'); 
         gameModeMenu.classList.remove('hidden'); 
     });
 
     singlePlayerBtn.addEventListener('click', () => {
+        SoundManager.playSFX('button');
         isMultiplayer = false;
         gameModeMenu.classList.add('hidden');
         playerSetupMenu.classList.remove('hidden');
@@ -2914,13 +2951,27 @@ document.addEventListener('DOMContentLoaded', () => {
     // Initialize sound system
     SoundManager.init();
     
-    // Play main menu BGM
+    // Play main menu BGM (will likely be blocked by browser until interaction)
     SoundManager.playBGM('mainmenu');
     
-    // Add global button click listener
+    // Global interaction listener to unlock audio
+    const unlockAudio = () => {
+        SoundManager.unlock();
+        // Also play a button sound to ensure the full audio context is unlocked
+        // SoundManager.playSFX('button'); 
+    };
+    
+    // Add multiple event types to catch the very first user interaction
+    ['click', 'touchstart', 'mousedown', 'keydown'].forEach(e => 
+        window.addEventListener(e, unlockAudio, { once: true })
+    );
+    
+    // Add global button click listener for SFX
     document.addEventListener('click', (e) => {
         if (e.target.tagName === 'BUTTON' || e.target.closest('button')) {
             SoundManager.playSFX('button');
+            // Re-trigger BGM unlock just in case
+            SoundManager.unlock();
         }
     });
     
