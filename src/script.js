@@ -242,6 +242,7 @@ const SoundManager = {
     playBGM(bgmName) {
         if (!bgmName) return;
         try {
+            const wasDifferentTrack = this.currentBGMName !== bgmName;
             // Track what should be playing
             this.currentBGMName = bgmName;
             
@@ -258,8 +259,8 @@ const SoundManager = {
                 }
             });
             
-            // Only reset if it's not already playing
-            if (audio.paused) {
+            // Restart if we switched tracks or the current track got paused.
+            if (wasDifferentTrack || audio.paused) {
                 audio.currentTime = 0;
                 const playPromise = audio.play();
                 if (playPromise !== undefined) {
@@ -344,6 +345,10 @@ function closeAuthModal() {
         authModal.classList.add('hidden');
         if (mainMenu) mainMenu.classList.remove('hidden');
     }
+}
+
+function showMenuBackground() {
+    if (menuBackground) menuBackground.show();
 }
 
 function showAuthLoading(show = true) {
@@ -785,6 +790,7 @@ class MenuBackground {
         this.renderer.setSize(window.innerWidth, window.innerHeight);
     }
     hide() {
+        if (typeof gsap !== 'undefined') gsap.killTweensOf(this.container);
         if (typeof gsap !== 'undefined') {
             gsap.to(this.container, { opacity: 0, duration: 1, onComplete: () => this.container.style.display = 'none' });
         } else {
@@ -793,7 +799,9 @@ class MenuBackground {
         if (this.overlay) this.overlay.classList.add('hidden');
     }
     show() {
+        if (typeof gsap !== 'undefined') gsap.killTweensOf(this.container);
         this.container.style.display = 'block';
+        this.container.style.opacity = '1';
         if (typeof gsap !== 'undefined') gsap.to(this.container, { opacity: 1, duration: 1 });
         if (this.overlay) this.overlay.classList.remove('hidden');
     }
@@ -2383,6 +2391,7 @@ function initGameUI() {
             
             joinRoomPanel.classList.add('hidden');
             waitingRoomMenu.classList.remove('hidden');
+            showMenuBackground();
             document.getElementById('waiting-room-code').textContent = currentRoomCode;
             document.getElementById('ready-btn').classList.remove('hidden');
             
@@ -2403,6 +2412,7 @@ function initGameUI() {
     document.getElementById('back-btn-join').addEventListener('click', () => {
         joinRoomPanel.classList.add('hidden');
         multiplayerMenu.classList.remove('hidden');
+        showMenuBackground();
         // Resume main menu BGM when going back
         SoundManager.playBGM('mainmenu');
     });
@@ -2410,6 +2420,7 @@ function initGameUI() {
     document.getElementById('leave-room-btn').addEventListener('click', () => {
         waitingRoomMenu.classList.add('hidden');
         mainMenu.classList.remove('hidden');
+        showMenuBackground();
         cleanupMultiplayer();
         // Resume main menu BGM when leaving room
         SoundManager.playBGM('mainmenu');
@@ -2460,6 +2471,7 @@ function initGameUI() {
     document.getElementById('back-btn1').addEventListener('click', () => { 
         gameModeMenu.classList.add('hidden'); 
         mainMenu.classList.remove('hidden'); 
+        showMenuBackground();
         // Play main menu BGM when going back to main menu
         SoundManager.playBGM('mainmenu');
     });
@@ -2467,6 +2479,7 @@ function initGameUI() {
     document.getElementById('back-btn2').addEventListener('click', () => { 
         multiplayerMenu.classList.add('hidden'); 
         gameModeMenu.classList.remove('hidden'); 
+        showMenuBackground();
         // Resume main menu BGM when going back to game mode menu
         SoundManager.playBGM('mainmenu');
     });
