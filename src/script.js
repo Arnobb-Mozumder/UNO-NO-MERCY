@@ -2536,9 +2536,11 @@ function initGameUI() {
                 const initialState = game.serialize();
                 await createRoom(currentRoomCode, { ...initialState, players: initialPlayers, gameStarted: false });
                 waitingRoomMenu.classList.remove('hidden');
+                showMenuBackground();
                 document.getElementById('waiting-room-code').textContent = currentRoomCode;
                 document.getElementById('start-multiplayer-btn').classList.remove('hidden');
                 document.getElementById('waiting-msg').textContent = "Waiting for players to join...";
+                SoundManager.playBGM('multiplayer');
                 setupMultiplayerSubscription();
                 initializeChatSystem();
             }
