@@ -2809,6 +2809,9 @@ gameCanvas.addEventListener('mousemove', (e) => {
 });
 
 gameCanvas.addEventListener('click', (e) => {
+    // Mobile browsers can fire a synthetic click after touchend.
+    // Ignore that click so drawing from deck does not immediately become a pass.
+    if (Date.now() < suppressNextClickUntil) return;
     if (!game || game.currentPlayerIndex !== myPlayerIndex || game.gameOver || game.waitingForColor) return;
     
     const dpr = window.devicePixelRatio || 1;
@@ -2882,6 +2885,7 @@ gameCanvas.addEventListener('wheel', (e) => {
 
 // Touch support
 let touchStartX = 0, touchStartY = 0, initialScrollX = 0, isScrollingHand = false, touchStartTime = 0;
+let suppressNextClickUntil = 0;
 
 gameCanvas.addEventListener('touchstart', (e) => {
     const touch = e.touches[0];
@@ -2945,6 +2949,10 @@ gameCanvas.addEventListener('touchend', (e) => {
     // Only register as tap if it wasn't a drag
     if (dx > 10 * dpr || dy > 10 * dpr || elapsed > 400) return;
 
+    // Suppress synthetic click event that follows touch on many mobile browsers.
+    suppressNextClickUntil = Date.now() + 450;
+    e.preventDefault();
+
     const mx = tx;
     const my = ty;
 
@@ -2982,7 +2990,7 @@ gameCanvas.addEventListener('touchend', (e) => {
             }
         }
     }
-}, { passive: true });
+}, { passive: false });
 
 // ===== INIT =====
 document.addEventListener('DOMContentLoaded', () => {

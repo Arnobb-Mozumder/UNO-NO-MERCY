@@ -194,6 +194,43 @@ h1.glitch-text {
 
 #quit-btn { margin-top: 1rem; }
 
+.image-btn {
+    background: transparent !important;
+    padding: 0 !important;
+    border: none !important;
+    box-shadow: none !important;
+    width: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.image-btn:hover {
+    background: transparent !important;
+    transform: translateY(-2px);
+}
+
+.image-btn:active {
+    transform: translateY(0);
+}
+
+.menu-btn-image {
+    display: block;
+    width: min(100%, 320px);
+    height: auto;
+    object-fit: contain;
+    pointer-events: none;
+    user-select: none;
+}
+
+#start-game-btn .menu-btn-image {
+    max-width: 320px;
+}
+
+#quit-btn .menu-btn-image {
+    max-width: 240px;
+}
+
 .text-btn {
     background: none; border: none;
     color: var(--text-dim);
@@ -627,6 +664,7 @@ input[type="text"]::placeholder { color: var(--text-dim); }
     .menu { width: 95%; max-width: none; padding: 2rem; }
     h1.glitch-text { font-size: 2.2rem; }
     .primary-btn, .secondary-btn { padding: 0.9rem 1.5rem; font-size: 0.95rem; }
+    .menu-btn-image { width: min(100%, 280px); }
     .menu-grid { gap: 1rem; }
     .modal-card { max-width: 90%; padding: 2rem; }
     .color-grid { gap: 1.2rem; }
@@ -699,6 +737,7 @@ input[type="text"]::placeholder { color: var(--text-dim); }
         padding: 0 10px;
     }
     .catch-pill { font-size: 0.65rem; line-height: 1.1; }
+    .menu-btn-image { width: min(100%, 240px); }
 }
 
 /* Landscape on small screens — critical layout fix */
