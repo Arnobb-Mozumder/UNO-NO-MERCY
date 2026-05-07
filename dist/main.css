@@ -1,7 +1,7 @@
 @import url(https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700;900&family=Space+Grotesk:wght@300;400;500;600;700&family=Montserrat:wght@700;900&display=swap);
 :root {
-    --primary: #1e40af;
-    --primary-light: #3b82f6;
+    --primary: #A0523D;
+    --primary-light: #D4AF8F;
     --secondary: #1f2937;
     --accent: #10b981;
     --bg-dark: #0f172a;
@@ -11,7 +11,7 @@
     --text-main: #f1f5f9;
     --text-dim: #94a3b8;
     --font-main: 'Outfit', sans-serif;
-    --font-heading: 'Space Grotesk', sans-serif;
+    --font-heading: 'Old English Text MT', 'Lucida Handwriting', 'Blackletter', 'Space Grotesk', sans-serif;
     --danger: #ef4444;
     --warning: #f59e0b;
 }
@@ -142,42 +142,57 @@ body {
 }
 
 h1.glitch-text {
-    font-family: 'Montserrat', sans-serif;
+    font-family: 'Old English Text MT', 'Lucida Handwriting', 'Blackletter', sans-serif;
     font-size: clamp(2rem, 8vw, 3.5rem);
     font-weight: 900;
     margin-bottom: 2rem;
-    color: var(--text-main);
-    letter-spacing: 0.05em;
+    color: var(--primary-light);
+    letter-spacing: 0.08em;
+    text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.7), 0 0 10px rgba(212, 175, 143, 0.3);
 }
 .menu h2 {
-    color: var(--text-main);
+    color: var(--primary-light);
     font-family: var(--font-heading);
     font-size: clamp(1.4rem, 4vw, 2rem);
     margin-bottom: 1.5rem;
+    text-shadow: 1px 1px 3px rgba(0, 0, 0, 0.5);
 }
 
 /* ===== BUTTONS ===== */
 .primary-btn {
-    background: var(--primary);
-    color: white;
+    background: linear-gradient(135deg, #C9844F 0%, #A0523D 50%, #8B4513 100%);
+    color: #f1f5f9;
     padding: clamp(0.8rem, 2vw, 1.2rem) clamp(1.5rem, 4vw, 2.5rem);
     border-radius: 0.75rem;
     font-size: clamp(0.9rem, 2vw, 1.1rem);
     font-weight: 600;
     width: 100%;
-    box-shadow: 0 4px 12px rgba(30, 64, 175, 0.3);
+    box-shadow: 0 8px 16px rgba(160, 82, 61, 0.4), inset 0 1px 0 rgba(212, 175, 143, 0.3);
     transition: 0.2s ease;
-    border: none;
+    border: 2px solid #6B3410;
     cursor: pointer;
     text-transform: uppercase;
     letter-spacing: 0.5px;
     font-family: var(--font-main);
+    position: relative;
+    overflow: hidden;
 }
-.primary-btn:hover { background: var(--primary-light); transform: translateY(-2px); }
+.primary-btn::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background: repeating-linear-gradient(90deg, rgba(139, 69, 19, 0.1) 0px, transparent 2px, transparent 4px);
+    pointer-events: none;
+}
+.primary-btn:hover {
+    background: linear-gradient(135deg, #D4AF8F 0%, #B8860B 50%, #A0523D 100%);
+    transform: translateY(-2px);
+    box-shadow: 0 12px 20px rgba(160, 82, 61, 0.5), inset 0 1px 0 rgba(212, 175, 143, 0.5);
+}
 .primary-btn:active { transform: translateY(0); }
 
 .secondary-btn {
-    background: rgba(255,255,255,0.06);
+    background: linear-gradient(135deg, #B8860B 0%, #A0523D 50%, #704a1f 100%);
     color: var(--text-main);
     padding: clamp(0.8rem, 2vw, 1.2rem) clamp(1.5rem, 4vw, 2.5rem);
     border-radius: 0.75rem;
@@ -185,11 +200,25 @@ h1.glitch-text {
     font-weight: 600;
     width: 100%;
     transition: 0.2s;
-    border: 1px solid var(--glass-border);
+    border: 2px solid #6B3410;
     cursor: pointer;
     font-family: var(--font-main);
+    box-shadow: 0 6px 12px rgba(112, 74, 31, 0.3), inset 0 1px 0 rgba(184, 134, 11, 0.2);
+    position: relative;
+    overflow: hidden;
 }
-.secondary-btn:hover { background: rgba(255,255,255,0.12); transform: translateY(-2px); }
+.secondary-btn::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background: repeating-linear-gradient(90deg, rgba(107, 52, 16, 0.1) 0px, transparent 2px, transparent 4px);
+    pointer-events: none;
+}
+.secondary-btn:hover {
+    background: linear-gradient(135deg, #D4AF8F 0%, #C9844F 50%, #A0523D 100%);
+    transform: translateY(-2px);
+    box-shadow: 0 10px 16px rgba(160, 82, 61, 0.4), inset 0 1px 0 rgba(212, 175, 143, 0.3);
+}
 
 #quit-btn { margin-top: 1rem; }
 
@@ -256,7 +285,7 @@ h1.glitch-text {
     align-items: center; gap: 1rem;
     color: var(--text-main); transition: 0.2s; cursor: pointer;
 }
-.mode-btn:hover { background: rgba(255,255,255,0.1); border-color: var(--primary); transform: translateY(-4px); }
+.mode-btn:hover { background: rgba(255,255,255,0.1); border-color: var(--primary); transform: translateY(-4px); box-shadow: 0 8px 16px rgba(160, 82, 61, 0.2); }
 .mode-btn .icon { font-size: 3rem; }
 
 .menu-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin: 1.5rem 0; }
@@ -281,18 +310,18 @@ h1.glitch-text {
     display: flex;
     align-items: center;
     justify-content: center;
-    background: linear-gradient(135deg, #4285F4, #357ABD);
-    border: 1px solid rgba(255, 255, 255, 0.1);
+    background: linear-gradient(135deg, #D4A574, #C9844F);
+    border: 2px solid #6B3410;
     border-radius: 8px;
     cursor: pointer;
     transition: 0.3s ease;
-    box-shadow: 0 4px 15px rgba(66, 133, 244, 0.4);
+    box-shadow: 0 6px 15px rgba(160, 82, 61, 0.4), inset 0 1px 0 rgba(212, 175, 143, 0.2);
 }
 
 .google-signin-square:hover {
-    background: linear-gradient(135deg, #357ABD, #2E5CB8);
+    background: linear-gradient(135deg, #E5B89D, #D4A574);
     transform: translateY(-2px);
-    box-shadow: 0 6px 20px rgba(66, 133, 244, 0.6);
+    box-shadow: 0 8px 20px rgba(160, 82, 61, 0.5), inset 0 1px 0 rgba(212, 175, 143, 0.3);
 }
 
 .google-signin-square:active {
@@ -307,7 +336,7 @@ h1.glitch-text {
 }
 
 .room-info { margin-bottom: 2rem; }
-.room-info h2 { color: var(--primary); letter-spacing: 4px; font-size: 2.5rem; }
+.room-info h2 { color: var(--primary-light); letter-spacing: 4px; font-size: 2.5rem; font-family: var(--font-heading); text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.5); }
 
 .players-list-container {
     text-align: left;
@@ -362,7 +391,7 @@ input[type="text"]::placeholder { color: var(--text-dim); }
     background: rgba(255,255,255,0.05); border: 1px solid transparent;
 }
 .emoji-option:hover  { background: rgba(255,255,255,0.12); transform: scale(1.15); }
-.emoji-option.selected { background: var(--primary); transform: scale(1.1); border-color: var(--primary); }
+.emoji-option.selected { background: var(--primary); transform: scale(1.1); border-color: var(--primary-light); box-shadow: 0 0 12px rgba(160, 82, 61, 0.4); }
 
 /* ===== SETTINGS ICON BUTTON ===== */
 .icon-btn {
