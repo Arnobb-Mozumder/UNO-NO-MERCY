@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700;900&family=Space+Grotesk:wght@300;400;500;600;700&family=Montserrat:wght@700;900&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700;900&family=Space+Grotesk:wght@300;400;500;600;700&family=Montserrat:wght@700;900&family=Uncial+Antiqua&family=MedievalSharp&display=swap');
 
 :root {
     --primary: #A0523D;
@@ -12,7 +12,7 @@
     --text-main: #f1f5f9;
     --text-dim: #94a3b8;
     --font-main: 'Outfit', sans-serif;
-    --font-heading: 'Old English Text MT', 'Lucida Handwriting', 'Blackletter', 'Space Grotesk', sans-serif;
+    --font-heading: 'Uncial Antiqua', 'Old English Text MT', 'Lucida Handwriting', 'Blackletter', 'Space Grotesk', sans-serif;
     --danger: #ef4444;
     --warning: #f59e0b;
 }
@@ -143,7 +143,7 @@ body {
 }
 
 h1.glitch-text {
-    font-family: 'Old English Text MT', 'Lucida Handwriting', 'Blackletter', sans-serif;
+    font-family: 'Uncial Antiqua', 'Old English Text MT', 'Lucida Handwriting', 'Blackletter', sans-serif;
     font-size: clamp(2rem, 8vw, 3.5rem);
     font-weight: 900;
     margin-bottom: 2rem;
@@ -201,7 +201,7 @@ h1.glitch-text {
 .modal-card h3,
 .room-info h2,
 #game-over-subtitle {
-    font-family: 'Old English Text MT', 'Lucida Handwriting', 'Blackletter', var(--font-heading);
+    font-family: 'Uncial Antiqua', 'Old English Text MT', 'Lucida Handwriting', 'Blackletter', var(--font-heading);
     letter-spacing: 0.08em;
 }
 
@@ -274,6 +274,55 @@ h1.glitch-text {
     letter-spacing: normal;
     text-transform: none;
 }
+
+/* ===== MULTIPLAYER & JOIN ROOM — normal body text, deathnote headings ===== */
+/* Keep headings in Death Note style (already handled by .menu h1/.menu h2 rules above) */
+
+/* Override body elements in multiplayer-menu to normal/professional */
+#multiplayer-menu button,
+#multiplayer-menu .divider,
+#multiplayer-menu .back-link,
+#join-room-panel button,
+#join-room-panel input,
+#join-room-panel input::placeholder,
+#join-room-panel .emoji-selector p,
+#join-room-panel .back-link {
+    font-family: var(--font-main);
+    letter-spacing: 0.02em;
+    text-transform: none;
+    font-weight: 600;
+}
+
+/* Restore normal casing for these specific buttons */
+#create-room-btn,
+#join-hub-btn,
+#confirm-join-btn,
+#back-btn2,
+#back-btn-join {
+    text-transform: none;
+    letter-spacing: 0.03em;
+    font-family: var(--font-main);
+    font-weight: 700;
+}
+
+/* Keep input placeholder readable */
+#join-code-input::placeholder,
+#join-name-input::placeholder {
+    text-transform: none;
+    letter-spacing: 0.02em;
+    font-family: var(--font-main);
+    font-weight: 400;
+}
+
+/* Make divider "OR" text clean */
+#multiplayer-menu .divider span {
+    font-family: var(--font-main);
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    font-weight: 500;
+    font-size: 0.85rem;
+}
+
 .menu h2 {
     color: var(--primary-light);
     font-size: clamp(1.4rem, 4vw, 2rem);
@@ -830,7 +879,9 @@ input[type="text"]::placeholder { color: var(--text-dim); }
     .primary-btn, .secondary-btn { padding: 0.7rem 1.2rem; font-size: 0.85rem; }
     .mode-btn { padding: 0; gap: 0; }
     .mode-btn .icon { font-size: 2rem; }
-    .menu-grid { grid-template-columns: 1fr; gap: 0.75rem; }
+    /* Center mode buttons when stacked in single-column layout on small screens */
+    .menu-grid { grid-template-columns: 1fr; gap: 0.75rem; justify-items: center; }
+    .menu-grid .mode-btn { width: 75vw; max-width: 220px; }
     .modal-card { max-width: 95vw; padding: 1.5rem; }
 
     #color-chooser {
