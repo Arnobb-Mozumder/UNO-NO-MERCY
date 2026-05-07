@@ -406,21 +406,48 @@ function exitFullscreen() {
     if (exitFullscreenBtn) exitFullscreenBtn.classList.add('hidden');
 }
 
+function dismissAlert() {
+    if (!gameAlert) return;
+    if (alertTimeout) {
+        clearTimeout(alertTimeout);
+        alertTimeout = null;
+    }
+    if (typeof gsap !== 'undefined') {
+        gsap.killTweensOf(gameAlert);
+        gsap.to(gameAlert, {
+            opacity: 0,
+            scale: 0.5,
+            duration: 0.15,
+            onComplete: () => gameAlert.classList.add('vis-hidden')
+        });
+    } else {
+        gameAlert.classList.add('vis-hidden');
+    }
+}
+
 function showAlert(message) {
     if (!gameAlert) return;
+    if (alertTimeout) {
+        clearTimeout(alertTimeout);
+        alertTimeout = null;
+    }
+    if (typeof gsap !== 'undefined') gsap.killTweensOf(gameAlert);
     gameAlert.textContent = message;
     gameAlert.classList.remove('hidden', 'vis-hidden');
     if (typeof gsap !== 'undefined') {
         gsap.fromTo(gameAlert, { scale: 0.5, opacity: 0 }, { scale: 1, opacity: 1, duration: 0.4, ease: "back.out" });
     }
-    if (alertTimeout) clearTimeout(alertTimeout);
     alertTimeout = setTimeout(() => {
-        if (typeof gsap !== 'undefined') {
-            gsap.to(gameAlert, { opacity: 0, scale: 0.5, duration: 0.3, onComplete: () => gameAlert.classList.add('vis-hidden') });
-        } else {
-            gameAlert.classList.add('vis-hidden');
-        }
+        dismissAlert();
     }, 3000);
+}
+
+if (gameAlert) {
+    gameAlert.addEventListener('pointerdown', (event) => {
+        event.preventDefault();
+        event.stopPropagation();
+        dismissAlert();
+    });
 }
 
 // ===== MULTIPLAYER CHAT SYSTEM =====
