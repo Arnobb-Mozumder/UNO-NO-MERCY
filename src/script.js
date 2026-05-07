@@ -2395,7 +2395,7 @@ function initGameUI() {
             document.getElementById('waiting-room-code').textContent = currentRoomCode;
             document.getElementById('ready-btn').classList.remove('hidden');
             
-            // Play multiplayer background music in waiting room
+            // Start the waiting-room BGM immediately so the user gesture is still active.
             SoundManager.playBGM('multiplayer');
 
             const updatedPlayers = [...(room.state.players || []), { name, emoji, isBot: false, id: myPlayerId, ready: false, deviceId, authUID: currentAuthUID || null }];
@@ -2534,6 +2534,9 @@ function initGameUI() {
                 const initialPlayers = [{ name, emoji, isBot: false, id: hostPlayerId, ready: true, isHost: true, deviceId, authUID: currentAuthUID || null }];
                 game = new UNOGame(initialPlayers);
                 const initialState = game.serialize();
+                // Start the multiplayer BGM before the async room call so autoplay is not blocked.
+                SoundManager.playBGM('multiplayer');
+
                 await createRoom(currentRoomCode, { ...initialState, players: initialPlayers, gameStarted: false });
                 waitingRoomMenu.classList.remove('hidden');
                 showMenuBackground();
