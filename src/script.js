@@ -5,12 +5,12 @@ import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader';
 
 // ===== EMOJI IMAGE CACHE =====
 const emojiImageSources = {
-    '🎨': './emoji.png',
-    '🤖': './emoji2.png',
-    '👾': './emoji3.png',
-    '👻': './emoji4.png',
-    '🐉': './emoji5.png',
-    '🚀': './emoji6.png'
+    '🎨': './emoji.png?v=20260509',
+    '🤖': './emoji2.png?v=20260509',
+    '👾': './emoji3.png?v=20260509',
+    '👻': './emoji4.png?v=20260509',
+    '🐉': './emoji5.png?v=20260509',
+    '🚀': './emoji6.png?v=20260509'
 };
 const emojiImageCache = new Map();
 
