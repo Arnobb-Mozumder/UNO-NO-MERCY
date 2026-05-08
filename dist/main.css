@@ -1,4 +1,4 @@
-@import url(https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700;900&family=Space+Grotesk:wght@300;400;500;600;700&family=Montserrat:wght@700;900&family=Uncial+Antiqua&family=MedievalSharp&display=swap);
+@import url(https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700;900&family=Space+Grotesk:wght@300;400;500;600;700&family=Montserrat:wght@700;900&family=Uncial+Antiqua&family=MedievalSharp&family=UnifrakturMaguntia&display=swap);
 :root {
     --primary: #A0523D;
     --primary-light: #D4AF8F;
@@ -11,7 +11,7 @@
     --text-main: #f1f5f9;
     --text-dim: #94a3b8;
     --font-main: 'Outfit', sans-serif;
-    --font-heading: 'Uncial Antiqua', 'Old English Text MT', 'Lucida Handwriting', 'Blackletter', 'Space Grotesk', sans-serif;
+    --font-heading: 'UnifrakturMaguntia', 'Uncial Antiqua', 'Old English Text MT', 'Lucida Handwriting', 'Blackletter', 'Space Grotesk', sans-serif;
     --danger: #ef4444;
     --warning: #f59e0b;
 }
@@ -142,7 +142,7 @@ body {
 }
 
 h1.glitch-text {
-    font-family: 'Uncial Antiqua', 'Old English Text MT', 'Lucida Handwriting', 'Blackletter', sans-serif;
+    font-family: 'UnifrakturMaguntia', 'Uncial Antiqua', 'Old English Text MT', 'Lucida Handwriting', 'Blackletter', sans-serif;
     font-size: clamp(2rem, 8vw, 3.5rem);
     font-weight: 900;
     margin-bottom: 2rem;
@@ -826,15 +826,15 @@ input[type="text"]::placeholder { color: var(--text-dim); }
 #game-alert {
     position: fixed; top: 30%;
     left: 50%; transform: translateX(-50%);
-    background: rgba(10,15,28,0.92);
-    border: 1px solid rgba(255,255,255,0.12);
+    background: transparent;
+    border: 2px solid rgba(255,255,255,0.3);
     border-radius: 0.75rem;
     padding: 0.8rem 2rem;
     color: white;
     font-size: clamp(1.1rem, 2.5vw, 1.8rem);
     font-weight: 800; text-align: center;
     z-index: 10030;
-    box-shadow: 0 12px 40px rgba(0,0,0,0.5);
+    box-shadow: 0 0 20px rgba(212, 175, 143, 0.2);
     max-width: 90%;
     pointer-events: none;
     white-space: normal;
