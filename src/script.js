@@ -1748,27 +1748,37 @@ function drawOpponents(others, tableTop, tableBot, deckMidY, cx) {
         const fontSize = Math.max(11, (mobile ? 13 : 15) * SCALE);
         ctx.font = `bold ${fontSize}px Outfit`;
         ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        const nameLabel = `${p.name} (${cardCount})`;
         
         // Handle emoji images when an asset exists for the selected emoji
         const emojiImage = getEmojiImage(p.emoji);
         if (emojiImage && emojiImage.complete && emojiImage.naturalWidth > 0) {
-            const emojiSize = fontSize * 1.2;
-            const emojiX = centerX - (ctx.measureText(`${p.name} (${cardCount})`).width / 2) + emojiSize / 2;
-            ctx.drawImage(emojiImage, emojiX - emojiSize / 2, labelY - emojiSize / 2, emojiSize, emojiSize);
-            ctx.fillText(`${p.name} (${cardCount})`, centerX + emojiSize / 2, labelY);
+            const emojiSize = fontSize * 1.15;
+            const gap = Math.max(4, 6 * SCALE);
+            const textW = ctx.measureText(nameLabel).width;
+            const groupW = emojiSize + gap + textW;
+            const groupLeft = centerX - groupW / 2;
+            const emojiY = labelY - emojiSize / 2;
+            ctx.drawImage(emojiImage, groupLeft, emojiY, emojiSize, emojiSize);
+            ctx.textAlign = 'left';
+            ctx.fillText(nameLabel, groupLeft + emojiSize + gap, labelY);
         } else {
-            ctx.fillText(`${p.emoji} ${p.name} (${cardCount})`, centerX, labelY);
+            ctx.fillText(`${p.emoji} ${nameLabel}`, centerX, labelY);
         }
         
         if (isDisconnected) {
             ctx.fillStyle = '#f87171';
             ctx.font = `bold ${Math.max(9, fontSize * 0.75)}px Outfit`;
+            ctx.textAlign = 'center';
             ctx.fillText('DISCONNECTED', centerX, labelY + fontSize + 3 * SCALE);
         } else if (isCurrentTurn) {
             ctx.fillStyle = '#60a5fa';
             ctx.font = `bold ${Math.max(9, fontSize * 0.75)}px Outfit`;
+            ctx.textAlign = 'center';
             ctx.fillText('▶ PLAYING', centerX, labelY + fontSize + 3 * SCALE);
         }
+        ctx.textBaseline = 'alphabetic';
         ctx.restore();
 
         opponentBounds.push({
