@@ -10,7 +10,7 @@ const emojiImageSources = {
     '👾': './emoji3.png',
     '👻': './emoji4.png',
     '🐉': './emoji5.png',
-    '🚀': './emoji5.png'
+    '🚀': './emoji6.png'
 };
 const emojiImageCache = new Map();
 
@@ -1819,7 +1819,13 @@ function updateHTMLHUD() {
     const currentP = game.getCurrentPlayer();
     if (currentPlayerNameHUD && currentP) {
         const isMyTurn = game.currentPlayerIndex === myPlayerIndex;
-        currentPlayerNameHUD.textContent = isMyTurn ? `${currentP.emoji} YOUR TURN` : `${currentP.emoji} ${currentP.name.toUpperCase()}`;
+        const labelText = isMyTurn ? 'YOUR TURN' : currentP.name.toUpperCase();
+        const emojiImage = getEmojiImage(currentP.emoji);
+        if (emojiImage && emojiImage.complete && emojiImage.naturalWidth > 0) {
+            currentPlayerNameHUD.innerHTML = `<img class="hud-emoji-img" src="${emojiImage.src}" alt=""> <span>${escapeHtml(labelText)}</span>`;
+        } else {
+            currentPlayerNameHUD.textContent = `${currentP.emoji} ${labelText}`;
+        }
         currentPlayerNameHUD.style.color = isMyTurn ? '#60a5fa' : 'white';
     }
 
@@ -1953,7 +1959,8 @@ function drawHumanHand(p, centerX, baseY, cw, ch) {
     ctx.fillStyle = isMyTurn ? '#60a5fa' : 'rgba(255,255,255,0.8)';
     const mobileLandscape = isMobile() && !isPortrait();
     const labelScale = mobileLandscape ? SCALE * 1.5 : SCALE;
-    ctx.font = `bold ${Math.max(11 * dpr, 14 * labelScale)}px Outfit`;
+    const labelFontSize = Math.max(12 * dpr, 15 * labelScale);
+    ctx.font = `bold ${labelFontSize}px Outfit`;
     ctx.textAlign = 'center';
     ctx.shadowColor = 'rgba(0,0,0,0.9)';
     ctx.shadowBlur = 8;
@@ -1961,13 +1968,13 @@ function drawHumanHand(p, centerX, baseY, cw, ch) {
     // Handle emoji images when an asset exists for the selected emoji
     const emojiImage = getEmojiImage(p.emoji);
     if (emojiImage && emojiImage.complete && emojiImage.naturalWidth > 0) {
-        const emojiSize = Math.max(11 * dpr, 14 * labelScale) * 1.3;
+        const emojiSize = labelFontSize * 1.32;
         const textX = centerX + emojiSize / 2 + 5;
-        ctx.drawImage(emojiImage, centerX - emojiSize / 2, baseY + ch + 22 * SCALE - emojiSize / 2, emojiSize, emojiSize);
+        ctx.drawImage(emojiImage, centerX - emojiSize / 2, baseY + ch + 24 * SCALE - emojiSize / 2, emojiSize, emojiSize);
         ctx.textAlign = 'left';
-        ctx.fillText(`${p.name.toUpperCase()}`, textX, baseY + ch + 22 * SCALE + emojiSize / 4);
+        ctx.fillText(`${p.name.toUpperCase()}`, textX, baseY + ch + 24 * SCALE + emojiSize / 4);
     } else {
-        ctx.fillText(`${p.emoji} ${p.name.toUpperCase()}`, centerX, baseY + ch + 22 * SCALE);
+        ctx.fillText(`${p.emoji} ${p.name.toUpperCase()}`, centerX, baseY + ch + 24 * SCALE);
     }
     ctx.restore();
 }

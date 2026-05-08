@@ -785,6 +785,17 @@ input[type="text"]::placeholder { color: var(--text-dim); }
     text-transform: uppercase; letter-spacing: 1px;
     color: white; pointer-events: none; margin: 0;
     white-space: nowrap;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.hud-emoji-img {
+    width: 22px;
+    height: 22px;
+    object-fit: contain;
+    display: inline-block;
+    flex-shrink: 0;
 }
 
 /* ===== ACTION CONTROLS ===== */
