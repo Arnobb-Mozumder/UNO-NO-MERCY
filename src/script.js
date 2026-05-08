@@ -406,7 +406,7 @@ function exitFullscreen() {
     if (exitFullscreenBtn) exitFullscreenBtn.classList.add('hidden');
 }
 
-function dismissAlert() {
+function dismissAlert(immediate = false) {
     if (!gameAlert) return;
     if (alertTimeout) {
         clearTimeout(alertTimeout);
@@ -414,12 +414,17 @@ function dismissAlert() {
     }
     if (typeof gsap !== 'undefined') {
         gsap.killTweensOf(gameAlert);
-        gsap.to(gameAlert, {
-            opacity: 0,
-            scale: 0.5,
-            duration: 0.15,
-            onComplete: () => gameAlert.classList.add('vis-hidden')
-        });
+        if (immediate) {
+            gsap.set(gameAlert, {opacity: 0, scale: 0.5});
+            gameAlert.classList.add('vis-hidden');
+        } else {
+            gsap.to(gameAlert, {
+                opacity: 0,
+                scale: 0.5,
+                duration: 0.15,
+                onComplete: () => gameAlert.classList.add('vis-hidden')
+            });
+        }
     } else {
         gameAlert.classList.add('vis-hidden');
     }
@@ -443,10 +448,21 @@ function showAlert(message) {
 }
 
 if (gameAlert) {
-    gameAlert.addEventListener('pointerdown', (event) => {
-        event.preventDefault();
-        event.stopPropagation();
-        dismissAlert();
+    ['pointerdown', 'touchstart', 'click'].forEach(evt => {
+        gameAlert.addEventListener(evt, (event) => {
+            event.preventDefault();
+            event.stopPropagation();
+            dismissAlert(true); // Immediate dismiss on touch
+        }, { passive: false });
+    });
+
+    // Also dismiss immediately if the user taps anywhere on the screen
+    ['touchstart', 'pointerdown'].forEach(evt => {
+        document.addEventListener(evt, (e) => {
+            if (!gameAlert.classList.contains('vis-hidden')) {
+                dismissAlert(true);
+            }
+        }, { passive: true });
     });
 }
 
@@ -1903,6 +1919,31 @@ function executeBotTurn() {
     if (!game || game.gameOver || game.waitingForColor) return;
     const p = game.getCurrentPlayer();
     if (!p || !p.isBot) return;
+
+    // First check if any other player forgot to call UNO
+    let caughtCount = 0;
+    let caughtNames = [];
+    game.players.forEach((otherP, idx) => {
+        if (otherP.hand.length === 1 && !otherP.unoCalled && !otherP.eliminated && idx !== game.currentPlayerIndex) {
+            for (let j = 0; j < 2; j++) otherP.addCard(game.safeDraw());
+            caughtCount++;
+            caughtNames.push(otherP.name.toUpperCase());
+        }
+    });
+
+    if (caughtCount > 0) {
+        if (typeof SoundManager !== 'undefined') SoundManager.playSFX('uno');
+        if (isMultiplayer && typeof game.broadcastAlert === 'function') {
+            game.broadcastAlert(`BOT CAUGHT ${caughtNames.join(', ')}! +2 CARDS`);
+            game.syncState();
+        } else {
+            showAlert(`BOT CAUGHT ${caughtNames.join(', ')}! +2 CARDS EACH!`);
+        }
+        // Delay bot's actual play to give players time to see the catch alert
+        game.turnStartTime = Date.now();
+        return;
+    }
+
     const validIndices = [];
     p.hand.forEach((c, idx) => { if (game.isValidMove(c)) validIndices.push(idx); });
     if (validIndices.length > 0) {
@@ -1911,7 +1952,7 @@ function executeBotTurn() {
             p.unoCalled = true;
             showAlert(`${p.name} CALLED UNO!`);
             // Play UNO sound when bot calls UNO
-            SoundManager.playSFX('uno');
+            if (typeof SoundManager !== 'undefined') SoundManager.playSFX('uno');
         }
         game.playCard(game.currentPlayerIndex, idx, true);
     } else {
