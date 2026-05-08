@@ -2769,7 +2769,13 @@ function updateWaitingList(players) {
     players.forEach(p => {
         const li = document.createElement('li');
         const statusClass = p.ready ? 'is-ready' : 'not-ready';
-        li.innerHTML = `<div class="player-info-tag"><span>${p.emoji}</span> <strong>${p.name}</strong></div><span class="ready-status ${statusClass}">${p.ready ? 'READY' : 'WAITING'}</span>`;
+
+        const emojiSrc = emojiImageSources[p.emoji];
+        const emojiMarkup = emojiSrc
+            ? `<img src="${emojiSrc}" alt="${escapeHtml(p.emoji || 'emoji')}" style="width: 22px; height: 22px; object-fit: contain; vertical-align: middle;">`
+            : `<span>${escapeHtml(p.emoji || '👤')}</span>`;
+
+        li.innerHTML = `<div class="player-info-tag">${emojiMarkup} <strong>${escapeHtml(p.name || 'Player')}</strong></div><span class="ready-status ${statusClass}">${p.ready ? 'READY' : 'WAITING'}</span>`;
         list.appendChild(li);
     });
 }
