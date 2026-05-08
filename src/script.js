@@ -3,23 +3,40 @@ import { supabase, createRoom, joinRoom, updateRoomState, subscribeToRoom, signI
 import * as THREE from 'three';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader';
 
-// ===== CUSTOM EMOJI IMAGE CACHE =====
-let customEmojiImage = null;
-async function loadCustomEmojiImage() {
-    if (!customEmojiImage) {
-        customEmojiImage = new Image();
-        customEmojiImage.src = './emoji.png';
+// ===== EMOJI IMAGE CACHE =====
+const emojiImageSources = {
+    '🎨': './emoji.png',
+    '🤖': './emoji2.png',
+    '👾': './emoji3.png',
+    '👻': './emoji4.png',
+    '🐉': './emoji5.png',
+    '🚀': './emoji5.png'
+};
+const emojiImageCache = new Map();
+
+async function loadEmojiImages() {
+    const loadPromises = Object.entries(emojiImageSources).map(([emoji, src]) => {
+        if (emojiImageCache.has(emoji)) return Promise.resolve();
+        const image = new Image();
+        image.src = src;
+        emojiImageCache.set(emoji, image);
         return new Promise((resolve) => {
-            customEmojiImage.onload = resolve;
-            customEmojiImage.onerror = () => {
-                console.warn('Failed to load emoji.png');
-                customEmojiImage = null;
+            image.onload = resolve;
+            image.onerror = () => {
+                console.warn(`Failed to load ${src}`);
+                emojiImageCache.delete(emoji);
                 resolve();
             };
         });
-    }
+    });
+    await Promise.all(loadPromises);
 }
-loadCustomEmojiImage();
+
+function getEmojiImage(emoji) {
+    return emojiImageCache.get(emoji) || null;
+}
+
+loadEmojiImages();
 
 // ===== SUPABASE AUTH SETUP =====
 let currentAuthUser = null;
@@ -1732,11 +1749,12 @@ function drawOpponents(others, tableTop, tableBot, deckMidY, cx) {
         ctx.font = `bold ${fontSize}px Outfit`;
         ctx.textAlign = 'center';
         
-        // Handle custom emoji image
-        if (p.emoji === '🎨' && customEmojiImage && customEmojiImage.complete) {
+        // Handle emoji images when an asset exists for the selected emoji
+        const emojiImage = getEmojiImage(p.emoji);
+        if (emojiImage && emojiImage.complete && emojiImage.naturalWidth > 0) {
             const emojiSize = fontSize * 1.2;
             const emojiX = centerX - (ctx.measureText(`${p.name} (${cardCount})`).width / 2) + emojiSize / 2;
-            ctx.drawImage(customEmojiImage, emojiX - emojiSize / 2, labelY - emojiSize / 2, emojiSize, emojiSize);
+            ctx.drawImage(emojiImage, emojiX - emojiSize / 2, labelY - emojiSize / 2, emojiSize, emojiSize);
             ctx.fillText(`${p.name} (${cardCount})`, centerX + emojiSize / 2, labelY);
         } else {
             ctx.fillText(`${p.emoji} ${p.name} (${cardCount})`, centerX, labelY);
@@ -1940,11 +1958,12 @@ function drawHumanHand(p, centerX, baseY, cw, ch) {
     ctx.shadowColor = 'rgba(0,0,0,0.9)';
     ctx.shadowBlur = 8;
     
-    // Handle custom emoji image
-    if (p.emoji === '🎨' && customEmojiImage && customEmojiImage.complete) {
+    // Handle emoji images when an asset exists for the selected emoji
+    const emojiImage = getEmojiImage(p.emoji);
+    if (emojiImage && emojiImage.complete && emojiImage.naturalWidth > 0) {
         const emojiSize = Math.max(11 * dpr, 14 * labelScale) * 1.3;
         const textX = centerX + emojiSize / 2 + 5;
-        ctx.drawImage(customEmojiImage, centerX - emojiSize / 2, baseY + ch + 22 * SCALE - emojiSize / 2, emojiSize, emojiSize);
+        ctx.drawImage(emojiImage, centerX - emojiSize / 2, baseY + ch + 22 * SCALE - emojiSize / 2, emojiSize, emojiSize);
         ctx.textAlign = 'left';
         ctx.fillText(`${p.name.toUpperCase()}`, textX, baseY + ch + 22 * SCALE + emojiSize / 4);
     } else {

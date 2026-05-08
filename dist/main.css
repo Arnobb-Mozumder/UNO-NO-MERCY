@@ -11,7 +11,7 @@
     --text-main: #f1f5f9;
     --text-dim: #94a3b8;
     --font-main: 'Outfit', sans-serif;
-    --font-heading: 'UnifrakturMaguntia', 'Uncial Antiqua', 'Old English Text MT', 'Lucida Handwriting', 'Blackletter', 'Space Grotesk', sans-serif;
+    --font-heading: 'Space Grotesk', 'Outfit', sans-serif;
     --danger: #ef4444;
     --warning: #f59e0b;
 }
@@ -180,9 +180,9 @@ h1.glitch-text {
 #join-code-input,
 #join-name-input,
 #player-name {
-    font-family: var(--font-heading);
-    letter-spacing: 0.06em;
-    text-transform: uppercase;
+    font-family: var(--font-main);
+    letter-spacing: 0.02em;
+    text-transform: none;
 }
 
 .primary-btn,
@@ -200,8 +200,8 @@ h1.glitch-text {
 .modal-card h3,
 .room-info h2,
 #game-over-subtitle {
-    font-family: 'Old English Text MT', 'UnifrakturMaguntia', 'Uncial Antiqua', 'Lucida Handwriting', 'Blackletter', serif;
-    letter-spacing: 0.08em;
+    font-family: var(--font-main);
+    letter-spacing: 0.01em;
 }
 
 .back-link,
@@ -232,16 +232,16 @@ h1.glitch-text {
 
 .menu input,
 .modal-card input {
-    font-family: var(--font-heading);
-    letter-spacing: 0.08em;
-    text-transform: uppercase;
+    font-family: var(--font-main);
+    letter-spacing: 0.02em;
+    text-transform: none;
 }
 
 .menu input::placeholder,
 .modal-card input::placeholder {
-    font-family: var(--font-heading);
-    letter-spacing: 0.08em;
-    text-transform: uppercase;
+    font-family: var(--font-main);
+    letter-spacing: 0.02em;
+    text-transform: none;
 }
 
 #settings-modal .modal-card,
