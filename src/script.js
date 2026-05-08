@@ -3,6 +3,24 @@ import { supabase, createRoom, joinRoom, updateRoomState, subscribeToRoom, signI
 import * as THREE from 'three';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader';
 
+// ===== CUSTOM EMOJI IMAGE CACHE =====
+let customEmojiImage = null;
+async function loadCustomEmojiImage() {
+    if (!customEmojiImage) {
+        customEmojiImage = new Image();
+        customEmojiImage.src = './emoji.png';
+        return new Promise((resolve) => {
+            customEmojiImage.onload = resolve;
+            customEmojiImage.onerror = () => {
+                console.warn('Failed to load emoji.png');
+                customEmojiImage = null;
+                resolve();
+            };
+        });
+    }
+}
+loadCustomEmojiImage();
+
 // ===== SUPABASE AUTH SETUP =====
 let currentAuthUser = null;
 let currentAuthUID = null;
@@ -1713,7 +1731,17 @@ function drawOpponents(others, tableTop, tableBot, deckMidY, cx) {
         const fontSize = Math.max(11, (mobile ? 13 : 15) * SCALE);
         ctx.font = `bold ${fontSize}px Outfit`;
         ctx.textAlign = 'center';
-        ctx.fillText(`${p.emoji} ${p.name} (${cardCount})`, centerX, labelY);
+        
+        // Handle custom emoji image
+        if (p.emoji === '🎨' && customEmojiImage && customEmojiImage.complete) {
+            const emojiSize = fontSize * 1.2;
+            const emojiX = centerX - (ctx.measureText(`${p.name} (${cardCount})`).width / 2) + emojiSize / 2;
+            ctx.drawImage(customEmojiImage, emojiX - emojiSize / 2, labelY - emojiSize / 2, emojiSize, emojiSize);
+            ctx.fillText(`${p.name} (${cardCount})`, centerX + emojiSize / 2, labelY);
+        } else {
+            ctx.fillText(`${p.emoji} ${p.name} (${cardCount})`, centerX, labelY);
+        }
+        
         if (isDisconnected) {
             ctx.fillStyle = '#f87171';
             ctx.font = `bold ${Math.max(9, fontSize * 0.75)}px Outfit`;
@@ -1911,7 +1939,17 @@ function drawHumanHand(p, centerX, baseY, cw, ch) {
     ctx.textAlign = 'center';
     ctx.shadowColor = 'rgba(0,0,0,0.9)';
     ctx.shadowBlur = 8;
-    ctx.fillText(`${p.emoji} ${p.name.toUpperCase()}`, centerX, baseY + ch + 22 * SCALE);
+    
+    // Handle custom emoji image
+    if (p.emoji === '🎨' && customEmojiImage && customEmojiImage.complete) {
+        const emojiSize = Math.max(11 * dpr, 14 * labelScale) * 1.3;
+        const textX = centerX + emojiSize / 2 + 5;
+        ctx.drawImage(customEmojiImage, centerX - emojiSize / 2, baseY + ch + 22 * SCALE - emojiSize / 2, emojiSize, emojiSize);
+        ctx.textAlign = 'left';
+        ctx.fillText(`${p.name.toUpperCase()}`, textX, baseY + ch + 22 * SCALE + emojiSize / 4);
+    } else {
+        ctx.fillText(`${p.emoji} ${p.name.toUpperCase()}`, centerX, baseY + ch + 22 * SCALE);
+    }
     ctx.restore();
 }
 
