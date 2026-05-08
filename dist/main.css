@@ -142,7 +142,7 @@ body {
 }
 
 h1.glitch-text {
-    font-family: 'UnifrakturMaguntia', 'Uncial Antiqua', 'Old English Text MT', 'Lucida Handwriting', 'Blackletter', sans-serif;
+    font-family: 'Old English Text MT', 'UnifrakturMaguntia', 'Uncial Antiqua', 'Lucida Handwriting', 'Blackletter', serif;
     font-size: clamp(2rem, 8vw, 3.5rem);
     font-weight: 900;
     margin-bottom: 2rem;
@@ -200,8 +200,22 @@ h1.glitch-text {
 .modal-card h3,
 .room-info h2,
 #game-over-subtitle {
-    font-family: 'Uncial Antiqua', 'Old English Text MT', 'Lucida Handwriting', 'Blackletter', var(--font-heading);
+    font-family: 'Old English Text MT', 'UnifrakturMaguntia', 'Uncial Antiqua', 'Lucida Handwriting', 'Blackletter', serif;
     letter-spacing: 0.08em;
+}
+
+.back-link,
+#back-btn1,
+#back-btn2,
+#back-btn-join,
+#back-btn3,
+#close-auth-btn,
+#leave-room-btn,
+#exit-to-menu-btn {
+    font-family: 'Space Grotesk', 'Outfit', sans-serif;
+    letter-spacing: 0.02em;
+    text-transform: none;
+    font-weight: 600;
 }
 
 .menu p,
