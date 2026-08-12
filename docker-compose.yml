@@ -1,0 +1,16 @@
+version: '3.8'
+
+services:
+  uno-game:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: uno-no-mercy
+    ports:
+      - "8080:80"
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:80/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
