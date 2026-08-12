@@ -5,6 +5,5 @@ dist
 .gitignore
 *.md
 npm-debug.log
-Dockerfile
 docker-compose.yml
 .dockerignore
