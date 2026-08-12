@@ -54,5 +54,27 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
+      - name: Ensure Dockerfile exists
+        run: |
+          if [ ! -f "Dockerfile" ]; then
+            echo "Dockerfile not found in repository. Creating fallback Dockerfile..."
+            cat << 'EOF' > Dockerfile
+# Multi-stage Dockerfile for UNO No Mercy Web Application
+FROM node:20-alpine AS builder
+WORKDIR /app
+COPY package*.json ./
+RUN npm ci
+COPY . .
+RUN npm run build
+
+FROM nginx:1.25-alpine AS runner
+COPY --from=builder /app/dist /usr/share/nginx/html
+EXPOSE 80
+HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
+  CMD wget -qO- http://localhost:80/ || exit 1
+CMD ["nginx", "-g", "daemon off;"]
+EOF
+          fi
+
       - name: Build Docker Image
         run: docker build -t uno-no-mercy:latest -f Dockerfile .
